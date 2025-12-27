@@ -17,14 +17,43 @@
 
 
 
+// /** @type {import('next').NextConfig} */
+// const nextConfig = {
+//   images: {
+//     domains: [
+//       'randomuser.me',
+//       'via.placeholder.com',
+//       'images.unsplash.com',
+//       'https://pixtkuaacmypdoagxvtt.supabase.co', // 🔁 replace with YOUR Supabase project id
+//     ],
+//   },
+// };
+
+// export default nextConfig;
+
+
+
+
+
+
+
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    domains: [
-      'randomuser.me',
-      'via.placeholder.com',
-      'images.unsplash.com',
-      'https://pixtkuaacmypdoagxvtt.supabase.co', // 🔁 replace with YOUR Supabase project id
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "randomuser.me",
+      },
+      {
+        protocol: "https",
+        hostname: "via.placeholder.com",
+      },
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+      },
     ],
   },
 };
