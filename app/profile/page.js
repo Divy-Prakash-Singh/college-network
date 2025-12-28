@@ -490,15 +490,17 @@ const ProfilePage = () => {
     router.push(`/ask?mentorId=${userData.id}&category=${encodeURIComponent(defaultCat)}`);
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-purple-900 via-black to-black text-white">
-        <Navbar />
-        <div className="flex items-center justify-center py-20">Loading...</div>
-        <BottomNavbar />
-      </div>
-    );
-  }
+ 
+  
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!currentUser) router.replace("/login");
+  }, [authLoading, currentUser]);
+  
+  if (authLoading) return null;
+
+  
 
   if (!userData) {
     return (

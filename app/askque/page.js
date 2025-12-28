@@ -1468,7 +1468,7 @@
 
 
 
-
+//this is my askque/page.js
 
 
 "use client";
@@ -1694,21 +1694,30 @@ export default function AskQuestionPage() {
   };
 
   // Show loading while auth is checking
-  if (authLoading || !pageReady) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-purple-900 via-black to-black flex items-center justify-center">
-        <div className="text-center text-white">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-          <p>Loading page...</p>
-        </div>
-      </div>
-    );
-  }
+  // if (authLoading || !pageReady) {
+  //   return (
+  //     <div className="min-h-screen bg-gradient-to-b from-purple-900 via-black to-black flex items-center justify-center">
+  //       <div className="text-center text-white">
+  //         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+  //         <p>Loading page...</p>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
-  // Don't render if not authenticated (will redirect)
-  if (!currentUser) {
-    return null;
-  }
+  // // Don't render if not authenticated (will redirect)
+  // if (!currentUser) {
+  //   return null;
+  // }
+
+
+
+  useEffect(() => {
+  if (authLoading) return;
+  if (!currentUser) router.replace("/login");
+}, [authLoading, currentUser]);
+
+if (authLoading) return null;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-900 via-black to-black">

@@ -3380,9 +3380,226 @@
 
 
 
+//2nd version
 
 
 
+// "use client";
+
+// import { useEffect, useState, useContext } from "react";
+// import Navbar from "@/components/Navbar";
+// import BottomNavbar from "@/components/BottomNavbar";
+// import QueBox from "@/components/QueBox";
+// import { supabase } from "@/lib/supabaseClient";
+// import { useRouter } from "next/navigation";
+// import { AuthContext } from "@/lib/AuthProvider";
+
+// const timeAgo = (iso) => {
+//   const d = new Date(iso);
+//   const diff = (Date.now() - d.getTime()) / 1000;
+//   const h = Math.floor(diff / 3600);
+//   const m = Math.floor((diff % 3600) / 60);
+//   if (h > 0) return `${h} hour${h > 1 ? "s" : ""} ago`;
+//   if (m > 0) return `${m} minute${m > 1 ? "s" : ""} ago`;
+//   return "just now";
+// };
+
+// const absoluteDate = (iso) =>
+//   new Date(iso).toLocaleString(undefined, {
+//     year: "numeric",
+//     month: "short",
+//     day: "numeric",
+//     hour: "2-digit",
+//     minute: "2-digit",
+//   });
+
+// const getEmoji = (name = "") => {
+//   const n = name.toLowerCase();
+//   if (n.includes("tech") || n.includes("coding")) return "💻";
+//   if (n.includes("cultural") || n.includes("music") || n.includes("dance")) return "🎭";
+//   if (n.includes("literary") || n.includes("debate") || n.includes("writing")) return "📚";
+//   if (n.includes("drama") || n.includes("film")) return "🎬";
+//   if (n.includes("photo")) return "📷";
+//   if (n.includes("robot")) return "🤖";
+//   if (n.includes("entrepreneur")) return "🚀";
+//   if (n.includes("environment")) return "🌿";
+//   if (n.includes("math")) return "➗";
+//   if (n.includes("astro")) return "🌌";
+//   if (n.includes("ml") || n.includes("ai")) return "🧠";
+//   if (n.includes("fin")) return "💹";
+//   return "🏫";
+// };
+
+// export default function HomePage() {
+//   const router = useRouter();
+//   const { currentUser, loading: authLoading } = useContext(AuthContext);
+
+//   const [questions, setQuestions] = useState([]);
+//   const [societies, setSocieties] = useState([]);
+//   const [loading, setLoading] = useState(true);
+
+//   const [isModalOpen, setIsModalOpen] = useState(false);
+//   const [selectedQuestion, setSelectedQuestion] = useState(null);
+//   const [modalAnswers, setModalAnswers] = useState([]);
+//   const [modalLoading, setModalLoading] = useState(false);
+
+//   const [openComments, setOpenComments] = useState({});
+//   const [comments, setComments] = useState({});
+//   const [commentInputs, setCommentInputs] = useState({});
+//   const [answerText, setAnswerText] = useState("");
+
+//   const [isMentor, setIsMentor] = useState(false);
+//   const [checkingMentor, setCheckingMentor] = useState(true);
+
+//   // 🔐 Auth redirect (NO render blocking)
+//   useEffect(() => {
+//     if (authLoading) return;
+//     if (!currentUser) {
+//       router.replace("/login");
+//     }
+//   }, [authLoading, currentUser, router]);
+
+//   // 🔍 Mentor check
+//   useEffect(() => {
+//     if (!currentUser?.id) {
+//       setIsMentor(false);
+//       setCheckingMentor(false);
+//       return;
+//     }
+
+//     let mounted = true;
+
+//     const checkMentor = async () => {
+//       const { data } = await supabase
+//         .from("users")
+//         .select("is_mentor")
+//         .eq("id", currentUser.id)
+//         .single();
+
+//       if (mounted) {
+//         setIsMentor(data?.is_mentor || false);
+//         setCheckingMentor(false);
+//       }
+//     };
+
+//     checkMentor();
+//     return () => (mounted = false);
+//   }, [currentUser]);
+
+//   // 📥 Questions
+//   useEffect(() => {
+//     if (!currentUser) return;
+
+//     let mounted = true;
+//     setLoading(true);
+
+//     supabase
+//       .from("questions")
+//       .select(`id,title,question,category,image,created_at,users:author_id(name,profile_image)`)
+//       .order("created_at", { ascending: false })
+//       .then(({ data }) => {
+//         if (mounted) {
+//           setQuestions(data || []);
+//           setLoading(false);
+//         }
+//       });
+
+//     return () => (mounted = false);
+//   }, [currentUser]);
+
+//   // 📥 Societies
+//   useEffect(() => {
+//     if (!currentUser) return;
+
+//     let mounted = true;
+
+//     supabase
+//       .from("societies")
+//       .select("id,name,description,created_at")
+//       .order("created_at", { ascending: false })
+//       .then(({ data }) => {
+//         if (mounted) setSocieties(data || []);
+//       });
+
+//     return () => (mounted = false);
+//   }, [currentUser]);
+
+//   // 🛑 IMPORTANT: never block render during auth
+//   if (authLoading) return null;
+
+//   return (
+//     <div
+//       className="min-h-screen text-white"
+//       style={{ background: "linear-gradient(to bottom, #4C1D95, #000000 60%)" }}
+//     >
+//       <Navbar />
+
+//       <div className="w-screen mx-auto flex gap-6 mt-6 px-4 pb-20">
+//         {/* LEFT SIDEBAR */}
+//         <aside className="hidden lg:block w-1/4">
+//           <div className="sticky top-20 space-y-4">
+//             <button
+//               onClick={() => router.push("/society/create")}
+//               className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-semibold p-3 rounded-lg"
+//             >
+//               + Create Society
+//             </button>
+
+//             <div className="rounded-xl p-4 border bg-white/5">
+//               <h2 className="text-lg font-semibold mb-3">College Societies</h2>
+//               {societies.map((s) => (
+//                 <div key={s.id} className="flex justify-between items-center mb-2">
+//                   <span>{getEmoji(s.name)} {s.name}</span>
+//                   <button onClick={() => router.push(`/society/${s.id}`)}>Visit</button>
+//                 </div>
+//               ))}
+//             </div>
+//           </div>
+//         </aside>
+
+//         {/* MAIN */}
+//         <main className="flex-1">
+//           <h2 className="text-xl font-semibold mb-4 text-yellow-300">
+//             Latest Questions
+//           </h2>
+
+//           {loading ? (
+//             <p className="text-center text-white/70">Loading questions…</p>
+//           ) : (
+//             questions.map((q) => (
+//               <QueBox
+//                 key={q.id}
+//                 id={q.id}
+//                 category={q.category}
+//                 que={q.question}
+//                 title={q.title}
+//                 image={q.image}
+//                 user={q.users}
+//                 onOpenModal={() => setSelectedQuestion(q)}
+//               />
+//             ))
+//           )}
+//         </main>
+//       </div>
+
+//       <BottomNavbar />
+//     </div>
+//   );
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+//this is my home/page.js
 
 "use client";
 
@@ -3403,15 +3620,6 @@ const timeAgo = (iso) => {
   if (m > 0) return `${m} minute${m > 1 ? "s" : ""} ago`;
   return "just now";
 };
-
-const absoluteDate = (iso) =>
-  new Date(iso).toLocaleString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 
 const getEmoji = (name = "") => {
   const n = name.toLowerCase();
@@ -3438,23 +3646,16 @@ export default function HomePage() {
   const [societies, setSocieties] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedQuestion, setSelectedQuestion] = useState(null);
-  const [modalAnswers, setModalAnswers] = useState([]);
-  const [modalLoading, setModalLoading] = useState(false);
-
-  const [openComments, setOpenComments] = useState({});
-  const [comments, setComments] = useState({});
-  const [commentInputs, setCommentInputs] = useState({});
-  const [answerText, setAnswerText] = useState("");
-
   const [isMentor, setIsMentor] = useState(false);
-  const [checkingMentor, setCheckingMentor] = useState(true);
 
-  // 🔐 Auth redirect (NO render blocking)
+  // 🔐 Auth redirect
   useEffect(() => {
+    console.log("🏠 [HomePage] Auth state:", { authLoading, hasUser: !!currentUser });
+    
     if (authLoading) return;
+    
     if (!currentUser) {
+      console.log("❌ [HomePage] No user, redirecting");
       router.replace("/login");
     }
   }, [authLoading, currentUser, router]);
@@ -3463,13 +3664,13 @@ export default function HomePage() {
   useEffect(() => {
     if (!currentUser?.id) {
       setIsMentor(false);
-      setCheckingMentor(false);
       return;
     }
 
     let mounted = true;
 
     const checkMentor = async () => {
+      console.log("🔍 [HomePage] Checking mentor status");
       const { data } = await supabase
         .from("users")
         .select("is_mentor")
@@ -3478,12 +3679,12 @@ export default function HomePage() {
 
       if (mounted) {
         setIsMentor(data?.is_mentor || false);
-        setCheckingMentor(false);
+        console.log("✅ [HomePage] Is mentor:", data?.is_mentor || false);
       }
     };
 
     checkMentor();
-    return () => (mounted = false);
+    return () => { mounted = false; };
   }, [currentUser]);
 
   // 📥 Questions
@@ -3491,20 +3692,26 @@ export default function HomePage() {
     if (!currentUser) return;
 
     let mounted = true;
+    
+    console.log("📥 [HomePage] Fetching questions");
     setLoading(true);
 
     supabase
       .from("questions")
       .select(`id,title,question,category,image,created_at,users:author_id(name,profile_image)`)
       .order("created_at", { ascending: false })
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) {
+          console.error("❌ [HomePage] Questions error:", error);
+        }
         if (mounted) {
           setQuestions(data || []);
           setLoading(false);
+          console.log("✅ [HomePage] Questions loaded:", data?.length || 0);
         }
       });
 
-    return () => (mounted = false);
+    return () => { mounted = false; };
   }, [currentUser]);
 
   // 📥 Societies
@@ -3512,20 +3719,55 @@ export default function HomePage() {
     if (!currentUser) return;
 
     let mounted = true;
+    
+    console.log("📥 [HomePage] Fetching societies");
 
     supabase
       .from("societies")
       .select("id,name,description,created_at")
       .order("created_at", { ascending: false })
-      .then(({ data }) => {
-        if (mounted) setSocieties(data || []);
+      .then(({ data, error }) => {
+        if (error) {
+          console.error("❌ [HomePage] Societies error:", error);
+        }
+        if (mounted) {
+          setSocieties(data || []);
+          console.log("✅ [HomePage] Societies loaded:", data?.length || 0);
+        }
       });
 
-    return () => (mounted = false);
+    return () => { mounted = false; };
   }, [currentUser]);
 
-  // 🛑 IMPORTANT: never block render during auth
+  // 🛑 Show minimal loading state (no blocking)
+  // if (authLoading) {
+  //   return (
+  //     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-purple-900 via-black to-black">
+  //       <div className="text-white text-center">
+  //         <div className="w-12 h-12 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+  //         <p>Loading...</p>
+  //       </div>
+  //     </div>
+  //   );
+  // }
+
+  // // Don't render if not authenticated (will redirect)
+  // if (!currentUser) {
+  //   return null;
+  // }
+
+
+
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!currentUser) router.replace("/login");
+  }, [authLoading, currentUser]);
+  
   if (authLoading) return null;
+
+
+  
 
   return (
     <div
@@ -3540,49 +3782,129 @@ export default function HomePage() {
           <div className="sticky top-20 space-y-4">
             <button
               onClick={() => router.push("/society/create")}
-              className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-semibold p-3 rounded-lg"
+              className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-semibold p-3 rounded-lg transition"
             >
               + Create Society
             </button>
 
-            <div className="rounded-xl p-4 border bg-white/5">
+            <div
+              className="rounded-xl p-4 shadow-lg border"
+              style={{
+                background: "rgba(255,255,255,0.05)",
+                borderColor: "rgba(255,255,255,0.1)",
+              }}
+            >
               <h2 className="text-lg font-semibold mb-3">College Societies</h2>
-              {societies.map((s) => (
-                <div key={s.id} className="flex justify-between items-center mb-2">
-                  <span>{getEmoji(s.name)} {s.name}</span>
-                  <button onClick={() => router.push(`/society/${s.id}`)}>Visit</button>
-                </div>
-              ))}
+              <div className="space-y-3 max-h-[70vh] overflow-hidden hover:overflow-y-auto pr-1">
+                {societies.length === 0 ? (
+                  <p className="text-sm text-white/60">No societies yet.</p>
+                ) : (
+                  societies.map((s) => (
+                    <div
+                      key={s.id}
+                      className="flex items-center justify-between pb-2 border-b last:border-b-0"
+                      style={{ borderColor: "rgba(255,255,255,0.1)" }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-10 h-10 rounded-full flex items-center justify-center text-lg border"
+                          style={{
+                            background: "rgba(255,255,255,0.1)",
+                            borderColor: "rgba(255,255,255,0.2)",
+                          }}
+                        >
+                          <span>{getEmoji(s.name)}</span>
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-semibold text-white/90">
+                            {s.name}
+                          </h3>
+                          <p className="text-xs text-white/60 line-clamp-1">
+                            {s.description}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => router.push(`/society/${s.id}`)}
+                        className="px-3 py-1 text-xs rounded-full border hover:bg-white/10 transition"
+                        style={{
+                          background: "rgba(255,255,255,0.05)",
+                          borderColor: "rgba(255,255,255,0.15)",
+                        }}
+                      >
+                        Visit
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           </div>
         </aside>
 
-        {/* MAIN */}
-        <main className="flex-1">
-          <h2 className="text-xl font-semibold mb-4 text-yellow-300">
-            Latest Questions
-          </h2>
+        {/* MAIN FEED */}
+        <main className="flex-1 mx-auto">
+          <div
+            className="rounded-xl shadow-lg border p-4 md:p-5"
+            style={{
+              background: "rgba(255,255,255,0.05)",
+              borderColor: "rgba(255,255,255,0.1)",
+            }}
+          >
+            <h2 className="text-xl font-semibold mb-4 text-[#FDE68A]">
+              Latest Questions
+            </h2>
 
-          {loading ? (
-            <p className="text-center text-white/70">Loading questions…</p>
-          ) : (
-            questions.map((q) => (
-              <QueBox
-                key={q.id}
-                id={q.id}
-                category={q.category}
-                que={q.question}
-                title={q.title}
-                image={q.image}
-                user={q.users}
-                onOpenModal={() => setSelectedQuestion(q)}
-              />
-            ))
-          )}
+            {loading ? (
+              <p className="text-white/70 text-center py-10">
+                Loading questions…
+              </p>
+            ) : questions.length === 0 ? (
+              <p className="text-white/70 text-center py-10">
+                No questions posted yet.
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {questions.map((q) => (
+                  <QueBox
+                    key={q.id}
+                    id={q.id}
+                    category={q.category}
+                    que={q.question}
+                    title={q.title}
+                    image={q.image}
+                    user={q.users}
+                    onOpenModal={() => {/* your modal logic */}}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         </main>
+
+        {/* RIGHT SIDEBAR */}
+        <aside className="hidden lg:block w-1/4">
+          <div className="sticky top-20">
+            <div
+              className="rounded-xl p-4 shadow-lg border"
+              style={{
+                background: "rgba(255,255,255,0.05)",
+                borderColor: "rgba(255,255,255,0.1)",
+              }}
+            >
+              <h2 className="text-lg font-semibold text-yellow-400">
+                About Mentor QnA
+              </h2>
+              <p className="text-sm text-white/80 mt-2 leading-relaxed">
+                Connect with experienced mentors across domains.
+              </p>
+            </div>
+          </div>
+        </aside>
       </div>
 
       <BottomNavbar />
     </div>
   );
 }
+
