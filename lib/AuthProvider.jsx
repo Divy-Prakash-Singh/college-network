@@ -2251,9 +2251,99 @@
 
 
 
+// "use client";
+
+// import { createContext, useEffect, useState, useCallback } from "react";
+// import { supabase } from "@/lib/supabaseClient";
+
+// export const AuthContext = createContext({
+//   currentUser: null,
+//   loading: true,
+//   refreshUser: async () => {},
+// });
+
+// export default function AuthProvider({ children }) {
+//   const [currentUser, setCurrentUser] = useState(null);
+//   const [loading, setLoading] = useState(true);
+
+//   const loadProfile = useCallback(async (userId) => {
+//     try {
+//       const { data, error } = await supabase
+//         .from("users")
+//         .select("*")
+//         .eq("id", userId)
+//         .maybeSingle();
+
+//       if (error) throw error;
+//       return data ?? null;
+//     } catch (err) {
+//       console.error("Profile fetch failed:", err.message);
+//       return null;
+//     }
+//   }, []);
+
+//   const initAuth = useCallback(async () => {
+//     try {
+//       const { data: { session } } = await supabase.auth.getSession();
+
+//       if (!session?.user) {
+//         setCurrentUser(null);
+//         setLoading(false);
+//         return;
+//       }
+
+//       // 🔑 IMPORTANT: set minimal user immediately
+//       setCurrentUser({ id: session.user.id });
+
+//       // 🔄 Fetch profile in background
+//       loadProfile(session.user.id).then((profile) => {
+//         if (profile) setCurrentUser(profile);
+//       });
+
+//       setLoading(false);
+//     } catch (err) {
+//       console.error("Auth init error:", err);
+//       setLoading(false);
+//     }
+//   }, [loadProfile]);
+
+//   useEffect(() => {
+//     initAuth();
+
+//     const { data: { subscription } } =
+//       supabase.auth.onAuthStateChange((event, session) => {
+//         if (!session?.user) {
+//           setCurrentUser(null);
+//           return;
+//         }
+
+//         setCurrentUser({ id: session.user.id });
+//         loadProfile(session.user.id).then((profile) => {
+//           if (profile) setCurrentUser(profile);
+//         });
+//       });
+
+//     return () => subscription.unsubscribe();
+//   }, [initAuth, loadProfile]);
+
+//   return (
+//     <AuthContext.Provider value={{ currentUser, loading }}>
+//       {children}
+//     </AuthContext.Provider>
+//   );
+// }
+
+
+
+
+
+
+
+
+
 "use client";
 
-import { createContext, useEffect, useState, useCallback } from "react";
+import { createContext, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
 export const AuthContext = createContext({
@@ -2266,68 +2356,149 @@ export default function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const loadProfile = useCallback(async (userId) => {
-    try {
-      const { data, error } = await supabase
-        .from("users")
-        .select("*")
-        .eq("id", userId)
-        .maybeSingle();
-
-      if (error) throw error;
-      return data ?? null;
-    } catch (err) {
-      console.error("Profile fetch failed:", err.message);
-      return null;
-    }
-  }, []);
-
-  const initAuth = useCallback(async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-
-      if (!session?.user) {
-        setCurrentUser(null);
-        setLoading(false);
-        return;
-      }
-
-      // 🔑 IMPORTANT: set minimal user immediately
-      setCurrentUser({ id: session.user.id });
-
-      // 🔄 Fetch profile in background
-      loadProfile(session.user.id).then((profile) => {
-        if (profile) setCurrentUser(profile);
-      });
-
-      setLoading(false);
-    } catch (err) {
-      console.error("Auth init error:", err);
-      setLoading(false);
-    }
-  }, [loadProfile]);
-
   useEffect(() => {
+    let mounted = true;
+
+    // 🔹 Load profile function (defined inside useEffect)
+    const loadProfile = async (userId) => {
+      try {
+        console.log("📥 [AuthProvider] Fetching profile for:", userId);
+        const { data, error } = await supabase
+          .from("users")
+          .select("*")
+          .eq("id", userId)
+          .maybeSingle();
+
+        if (error) {
+          console.error("❌ [AuthProvider] Profile error:", error);
+          return null;
+        }
+
+        console.log("✅ [AuthProvider] Profile loaded:", data?.name || data?.id);
+        return data ?? null;
+      } catch (err) {
+        console.error("❌ [AuthProvider] Profile fetch failed:", err);
+        return null;
+      }
+    };
+
+    // 🔹 Initialize auth
+    const initAuth = async () => {
+      try {
+        console.log("🔄 [AuthProvider] Initializing auth...");
+        
+        const { data: { session }, error } = await supabase.auth.getSession();
+
+        if (error) {
+          console.error("❌ [AuthProvider] Session error:", error);
+          if (mounted) {
+            setCurrentUser(null);
+            setLoading(false);
+          }
+          return;
+        }
+
+        if (!session?.user) {
+          console.log("❌ [AuthProvider] No session found");
+          if (mounted) {
+            setCurrentUser(null);
+            setLoading(false);
+          }
+          return;
+        }
+
+        console.log("✅ [AuthProvider] Session found:", session.user.id);
+
+        // Set minimal user first (fast)
+        if (mounted) {
+          setCurrentUser({ id: session.user.id });
+          setLoading(false); // ← Set loading false immediately
+        }
+
+        // Load full profile in background
+        const profile = await loadProfile(session.user.id);
+        if (mounted && profile) {
+          setCurrentUser(profile);
+        }
+
+      } catch (err) {
+        console.error("❌ [AuthProvider] Init error:", err);
+        if (mounted) {
+          setCurrentUser(null);
+          setLoading(false);
+        }
+      }
+    };
+
+    // Run initialization
     initAuth();
 
-    const { data: { subscription } } =
-      supabase.auth.onAuthStateChange((event, session) => {
-        if (!session?.user) {
+    // 🔹 Auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log("🔔 [AuthProvider] Auth event:", event);
+
+        if (!mounted) return;
+
+        // Skip INITIAL_SESSION (handled by initAuth)
+        if (event === "INITIAL_SESSION") return;
+
+        if (event === "SIGNED_OUT") {
+          console.log("👋 [AuthProvider] User signed out");
           setCurrentUser(null);
           return;
         }
 
-        setCurrentUser({ id: session.user.id });
-        loadProfile(session.user.id).then((profile) => {
-          if (profile) setCurrentUser(profile);
-        });
-      });
+        if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+          if (!session?.user) {
+            setCurrentUser(null);
+            return;
+          }
 
-    return () => subscription.unsubscribe();
-  }, [initAuth, loadProfile]);
+          console.log("🔄 [AuthProvider] Updating user:", session.user.id);
+          
+          // Set minimal user first
+          setCurrentUser({ id: session.user.id });
 
+          // Load full profile
+          const profile = await loadProfile(session.user.id);
+          if (mounted && profile) {
+            setCurrentUser(profile);
+          }
+        }
+      }
+    );
+
+    // Cleanup
+    return () => {
+      console.log("🧹 [AuthProvider] Cleaning up");
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []); // ✅ EMPTY DEPENDENCIES - runs only once
+
+  const refreshUser = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from("users")
+          .select("*")
+          .eq("id", session.user.id)
+          .maybeSingle();
+        setCurrentUser(profile || null);
+      }
+    } catch (err) {
+      console.error("Refresh error:", err);
+    }
+  };
+
+  console.log("🎨 [AuthProvider] Render - loading:", loading, "user:", !!currentUser);
+
+  // Don't block render with loading screen
+  // Let pages handle their own loading states
   return (
-    <AuthContext.Provider value={{ currentUser, loading }}>
+    <AuthContext.Provider value={{ currentUser, loading, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
