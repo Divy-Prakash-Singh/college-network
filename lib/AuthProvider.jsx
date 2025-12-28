@@ -2155,6 +2155,102 @@
 
 
 
+// "use client";
+
+// import { createContext, useEffect, useState, useCallback } from "react";
+// import { supabase } from "@/lib/supabaseClient";
+
+// export const AuthContext = createContext({
+//   currentUser: null,
+//   loading: true,
+//   refreshUser: async () => {},
+// });
+
+// export default function AuthProvider({ children }) {
+//   const [currentUser, setCurrentUser] = useState(null);
+//   const [loading, setLoading] = useState(true);
+
+//   const loadProfile = useCallback(async (userId) => {
+//     try {
+//       const { data, error } = await supabase
+//         .from("users")
+//         .select("*")
+//         .eq("id", userId)
+//         .maybeSingle();
+
+//       if (error) throw error;
+//       return data ?? null;
+//     } catch (err) {
+//       console.error("Profile fetch failed:", err.message);
+//       return null;
+//     }
+//   }, []);
+
+//   const initAuth = useCallback(async () => {
+//     try {
+//       const { data: { session } } = await supabase.auth.getSession();
+
+//       if (!session?.user) {
+//         setCurrentUser(null);
+//         setLoading(false);
+//         return;
+//       }
+
+//       // 🔑 IMPORTANT: set minimal user immediately
+//       setCurrentUser({ id: session.user.id });
+
+//       // 🔄 Fetch profile in background
+//       loadProfile(session.user.id).then((profile) => {
+//         if (profile) setCurrentUser(profile);
+//       });
+
+//       setLoading(false);
+//     } catch (err) {
+//       console.error("Auth init error:", err);
+//       setLoading(false);
+//     }
+//   }, [loadProfile]);
+
+//   useEffect(() => {
+//     initAuth();
+
+//     const { data: { subscription } } =
+//       supabase.auth.onAuthStateChange((event, session) => {
+//         if (!session?.user) {
+//           setCurrentUser(null);
+//           return;
+//         }
+
+//         setCurrentUser({ id: session.user.id });
+//         loadProfile(session.user.id).then((profile) => {
+//           if (profile) setCurrentUser(profile);
+//         });
+//       });
+
+//     return () => subscription.unsubscribe();
+//   }, [initAuth, loadProfile]);
+
+//   return (
+//     <AuthContext.Provider value={{ currentUser, loading }}>
+//       {children}
+//     </AuthContext.Provider>
+//   );
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 "use client";
 
 import { createContext, useEffect, useState, useCallback } from "react";

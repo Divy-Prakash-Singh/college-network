@@ -913,6 +913,7 @@ export default function MessagePage() {
     setIsModalOpen(false);
     setSelectedQuestion(null);
   };
+if (authLoading) {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-900 via-black to-black text-white relative">
@@ -1117,4 +1118,5 @@ export default function MessagePage() {
       <BottomNavbar />
     </div>
   );
+}
 }

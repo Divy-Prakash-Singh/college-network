@@ -1855,11 +1855,21 @@ export default function HomePage() {
   const [checkingMentor, setCheckingMentor] = useState(true);
 
   // Check authentication
+  // useEffect(() => {
+  //   if (!authLoading && !currentUser) {
+  //     router.push("/login");
+  //   }
+  // }, [currentUser, authLoading, router]);
+
+
+
   useEffect(() => {
-    if (!authLoading && !currentUser) {
-      router.push("/login");
-    }
-  }, [currentUser, authLoading, router]);
+  if (authLoading) return;
+  if (!currentUser) {
+    router.replace("/login");
+  }
+}, [authLoading, currentUser]);
+
 
   // Check if current user is a mentor
   useEffect(() => {
@@ -2212,9 +2222,19 @@ export default function HomePage() {
   }
 
   // If not authenticated, don't render
+  // if (!currentUser) {
+  //   return null;
+  // }
+
+
   if (!currentUser) {
-    return null;
-  }
+  return (
+    <div className="min-h-screen flex items-center justify-center text-white">
+      Redirecting to login…
+    </div>
+  );
+}
+
 
   return (
     <div
