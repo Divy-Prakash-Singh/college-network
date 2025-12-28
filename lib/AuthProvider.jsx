@@ -1466,6 +1466,132 @@
 
 
 
+// "use client";
+
+// import { createContext, useEffect, useState, useCallback } from "react";
+// import { supabase } from "@/lib/supabaseClient";
+
+// export const AuthContext = createContext({
+//   currentUser: null,
+//   loading: true,
+//   refreshUser: async () => {},
+// });
+
+// export default function AuthProvider({ children }) {
+//   const [currentUser, setCurrentUser] = useState(null);
+//   const [loading, setLoading] = useState(true);
+
+//   // 🔹 Load profile safely (never blocks app)
+//   const loadProfile = useCallback(async (userId) => {
+//     const { data, error } = await supabase
+//       .from("users")
+//       .select("*")
+//       .eq("id", userId)
+//       .maybeSingle();
+
+//     if (error) {
+//       console.error("Profile fetch error:", error.message);
+//       return null;
+//     }
+
+//     return data ?? null;
+//   }, []);
+
+//   // 🔹 Manual refresh
+//   const refreshUser = useCallback(async () => {
+//     const { data: { session } } = await supabase.auth.getSession();
+//     if (session?.user) {
+//       const profile = await loadProfile(session.user.id);
+//       setCurrentUser(profile);
+//     }
+//   }, [loadProfile]);
+
+//   // 🔹 INIT ONCE
+//   useEffect(() => {
+//     let mounted = true;
+
+//     const init = async () => {
+//       try {
+//         const { data: { session } } = await supabase.auth.getSession();
+
+//         if (!mounted) return;
+
+//         if (!session?.user) {
+//           setCurrentUser(null);
+//           setLoading(false);
+//           return;
+//         }
+
+//         const profile = await loadProfile(session.user.id);
+//         if (mounted) {
+//           setCurrentUser(profile);
+//           setLoading(false);
+//         }
+//       } catch (err) {
+//         console.error("Auth init failed:", err);
+//         if (mounted) setLoading(false);
+//       }
+//     };
+
+//     init();
+
+//     // 🔹 Auth listener (NO INITIAL_SESSION LOOP)
+//     const { data: { subscription } } =
+//       supabase.auth.onAuthStateChange(async (event, session) => {
+
+//         if (!mounted) return;
+
+//         // ❌ IGNORE this (Supabase fires it automatically)
+//         if (event === "INITIAL_SESSION") return;
+
+//         if (!session?.user) {
+//           setCurrentUser(null);
+//           setLoading(false);
+//           return;
+//         }
+
+//         setLoading(true);
+//         const profile = await loadProfile(session.user.id);
+//         setCurrentUser(profile);
+//         setLoading(false);
+//       });
+
+//     return () => {
+//       mounted = false;
+//       subscription.unsubscribe();
+//     };
+//   }, [loadProfile]); // ✅ NO currentUser dependency
+
+//   if (loading) {
+//     return (
+//       <div className="min-h-screen flex items-center justify-center bg-black text-white">
+//         Loading…
+//       </div>
+//     );
+//   }
+
+//   return (
+//     <AuthContext.Provider value={{ currentUser, loading, refreshUser }}>
+//       {children}
+//     </AuthContext.Provider>
+//   );
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 "use client";
 
 import { createContext, useEffect, useState, useCallback } from "react";
@@ -1481,34 +1607,46 @@ export default function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // 🔹 Load profile safely (never blocks app)
-  const loadProfile = useCallback(async (userId) => {
-    const { data, error } = await supabase
-      .from("users")
-      .select("*")
-      .eq("id", userId)
-      .maybeSingle();
+  // 🔹 Load profile safely
+  const loadProfile = async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from("users")
+        .select("*")
+        .eq("id", userId)
+        .maybeSingle();
 
-    if (error) {
-      console.error("Profile fetch error:", error.message);
+      if (error) {
+        console.error("Profile fetch error:", error.message);
+        return null;
+      }
+
+      return data ?? null;
+    } catch (err) {
+      console.error("Profile fetch failed:", err);
       return null;
     }
-
-    return data ?? null;
-  }, []);
+  };
 
   // 🔹 Manual refresh
   const refreshUser = useCallback(async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user) {
-      const profile = await loadProfile(session.user.id);
-      setCurrentUser(profile);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const profile = await loadProfile(session.user.id);
+        setCurrentUser(profile);
+      } else {
+        setCurrentUser(null);
+      }
+    } catch (err) {
+      console.error("Refresh user failed:", err);
     }
-  }, [loadProfile]);
+  }, []);
 
-  // 🔹 INIT ONCE
+  // 🔹 INIT ONCE - NO dependencies that change
   useEffect(() => {
     let mounted = true;
+    let hasInitialized = false;
 
     const init = async () => {
       try {
@@ -1529,38 +1667,66 @@ export default function AuthProvider({ children }) {
         }
       } catch (err) {
         console.error("Auth init failed:", err);
-        if (mounted) setLoading(false);
+        if (mounted) {
+          setCurrentUser(null);
+          setLoading(false);
+        }
       }
     };
 
     init();
 
-    // 🔹 Auth listener (NO INITIAL_SESSION LOOP)
-    const { data: { subscription } } =
-      supabase.auth.onAuthStateChange(async (event, session) => {
+    // 🔹 Auth listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log("Auth event:", event); // Debug log
 
         if (!mounted) return;
 
-        // ❌ IGNORE this (Supabase fires it automatically)
-        if (event === "INITIAL_SESSION") return;
+        // Skip initial session to prevent double-load
+        if (event === "INITIAL_SESSION") {
+          if (!hasInitialized) {
+            hasInitialized = true;
+          }
+          return;
+        }
 
-        if (!session?.user) {
+        if (event === "SIGNED_OUT") {
           setCurrentUser(null);
           setLoading(false);
           return;
         }
 
-        setLoading(true);
-        const profile = await loadProfile(session.user.id);
-        setCurrentUser(profile);
-        setLoading(false);
-      });
+        if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+          if (session?.user) {
+            setLoading(true);
+            const profile = await loadProfile(session.user.id);
+            if (mounted) {
+              setCurrentUser(profile);
+              setLoading(false);
+            }
+          }
+        }
+      }
+    );
 
     return () => {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [loadProfile]); // ✅ NO currentUser dependency
+  }, []); // ✅ Empty dependency array
+
+  // 🔹 Add timeout fallback
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (loading) {
+        console.warn("Auth loading timeout - forcing load completion");
+        setLoading(false);
+      }
+    }, 5000); // 5 second timeout
+
+    return () => clearTimeout(timeout);
+  }, [loading]);
 
   if (loading) {
     return (
@@ -1576,4 +1742,3 @@ export default function AuthProvider({ children }) {
     </AuthContext.Provider>
   );
 }
-
