@@ -1922,9 +1922,242 @@
 
 
 
+// "use client";
+
+// import { createContext, useEffect, useState } from "react";
+// import { supabase } from "@/lib/supabaseClient";
+
+// export const AuthContext = createContext({
+//   currentUser: null,
+//   loading: true,
+//   refreshUser: async () => {},
+// });
+
+// export default function AuthProvider({ children }) {
+//   const [currentUser, setCurrentUser] = useState(null);
+//   const [loading, setLoading] = useState(true);
+
+//   useEffect(() => {
+//     let mounted = true;
+//     let authSubscription = null;
+
+//     const initAuth = async () => {
+//       try {
+//         console.log("🔄 [AuthProvider] Starting initialization...");
+
+//         // Get current session
+//         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+//         if (sessionError) {
+//           console.error("❌ [AuthProvider] Session error:", sessionError);
+//           if (mounted) {
+//             setCurrentUser(null);
+//             setLoading(false);
+//           }
+//           return;
+//         }
+
+//         if (!session) {
+//           console.log("❌ [AuthProvider] No active session");
+//           if (mounted) {
+//             setCurrentUser(null);
+//             setLoading(false);
+//           }
+//           return;
+//         }
+
+//         console.log("✅ [AuthProvider] Session found, user ID:", session.user.id);
+
+//         // Fetch user profile
+//         const { data: profile, error: profileError } = await supabase
+//           .from("users")
+//           .select("*")
+//           .eq("id", session.user.id)
+//           .maybeSingle();
+
+//         if (profileError) {
+//           console.error("❌ [AuthProvider] Profile error:", profileError);
+//           if (mounted) {
+//             setCurrentUser(null);
+//             setLoading(false);
+//           }
+//           return;
+//         }
+
+//         if (!profile) {
+//           console.warn("⚠️ [AuthProvider] No profile found for user:", session.user.id);
+//           if (mounted) {
+//             setCurrentUser(null);
+//             setLoading(false);
+//           }
+//           return;
+//         }
+
+//         console.log("✅ [AuthProvider] Profile loaded:", profile.name || profile.id);
+
+//         if (mounted) {
+//           setCurrentUser(profile);
+//           setLoading(false);
+//         }
+
+//       } catch (err) {
+//         console.error("❌ [AuthProvider] Unexpected error:", err);
+//         if (mounted) {
+//           setCurrentUser(null);
+//           setLoading(false);
+//         }
+//       }
+//     };
+
+//     // Initialize auth
+//     initAuth();
+
+//     // Set up auth state listener
+//     const setupAuthListener = () => {
+//       const { data: { subscription } } = supabase.auth.onAuthStateChange(
+//         async (event, session) => {
+//           console.log("🔔 [AuthProvider] Auth event:", event);
+
+//           if (!mounted) {
+//             console.log("⏭️ [AuthProvider] Component unmounted, ignoring event");
+//             return;
+//           }
+
+//           // Skip INITIAL_SESSION - we handle it in initAuth
+//           if (event === "INITIAL_SESSION") {
+//             console.log("⏭️ [AuthProvider] Skipping INITIAL_SESSION");
+//             return;
+//           }
+
+//           // Handle sign out
+//           if (event === "SIGNED_OUT") {
+//             console.log("👋 [AuthProvider] User signed out");
+//             setCurrentUser(null);
+//             setLoading(false);
+//             return;
+//           }
+
+//           // Handle sign in or token refresh
+//           if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+//             if (!session) {
+//               console.log("⚠️ [AuthProvider] No session in", event);
+//               setCurrentUser(null);
+//               setLoading(false);
+//               return;
+//             }
+
+//             console.log("🔄 [AuthProvider] Refreshing profile for:", session.user.id);
+
+//             try {
+//               const { data: profile, error } = await supabase
+//                 .from("users")
+//                 .select("*")
+//                 .eq("id", session.user.id)
+//                 .maybeSingle();
+
+//               if (error) {
+//                 console.error("❌ [AuthProvider] Profile refresh error:", error);
+//                 setCurrentUser(null);
+//               } else if (profile) {
+//                 console.log("✅ [AuthProvider] Profile refreshed:", profile.name || profile.id);
+//                 setCurrentUser(profile);
+//               } else {
+//                 console.warn("⚠️ [AuthProvider] No profile found on refresh");
+//                 setCurrentUser(null);
+//               }
+//             } catch (err) {
+//               console.error("❌ [AuthProvider] Profile refresh failed:", err);
+//               setCurrentUser(null);
+//             }
+
+//             setLoading(false);
+//           }
+//         }
+//       );
+
+//       authSubscription = subscription;
+//       console.log("✅ [AuthProvider] Auth listener setup complete");
+//     };
+
+//     setupAuthListener();
+
+//     // Safety timeout - force loading to complete
+//     const safetyTimeout = setTimeout(() => {
+//       if (mounted && loading) {
+//         console.warn("⚠️ [AuthProvider] Safety timeout triggered - forcing load complete");
+//         setLoading(false);
+//       }
+//     }, 5000);
+
+//     // Cleanup
+//     return () => {
+//       console.log("🧹 [AuthProvider] Cleaning up...");
+//       mounted = false;
+//       if (authSubscription) {
+//         authSubscription.unsubscribe();
+//       }
+//       clearTimeout(safetyTimeout);
+//     };
+//   }, []); // Empty dependency array - only run once
+
+//   const refreshUser = async () => {
+//     console.log("🔄 [AuthProvider] Manual refresh requested");
+//     try {
+//       const { data: { session } } = await supabase.auth.getSession();
+//       if (session?.user) {
+//         const { data: profile } = await supabase
+//           .from("users")
+//           .select("*")
+//           .eq("id", session.user.id)
+//           .maybeSingle();
+//         setCurrentUser(profile || null);
+//         console.log("✅ [AuthProvider] Manual refresh complete");
+//       } else {
+//         setCurrentUser(null);
+//         console.log("❌ [AuthProvider] No session on manual refresh");
+//       }
+//     } catch (err) {
+//       console.error("❌ [AuthProvider] Manual refresh error:", err);
+//     }
+//   };
+
+//   console.log("🎨 [AuthProvider] Rendering - loading:", loading, "user:", !!currentUser);
+
+//   if (loading) {
+//     return (
+//       <div className="min-h-screen flex items-center justify-center bg-black text-white">
+//         <div className="text-center">
+//           <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-yellow-400 mx-auto mb-4"></div>
+//           <p className="text-lg">Loading your session...</p>
+//         </div>
+//       </div>
+//     );
+//   }
+// console.log("🔄 [AuthProvider] Starting initialization...");
+//   return (
+//     <AuthContext.Provider value={{ currentUser, loading, refreshUser }}>
+//       {children}
+//     </AuthContext.Provider>
+//   );
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 "use client";
 
-import { createContext, useEffect, useState } from "react";
+import { createContext, useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
 export const AuthContext = createContext({
@@ -1937,205 +2170,68 @@ export default function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let mounted = true;
-    let authSubscription = null;
+  const loadProfile = useCallback(async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from("users")
+        .select("*")
+        .eq("id", userId)
+        .maybeSingle();
 
-    const initAuth = async () => {
-      try {
-        console.log("🔄 [AuthProvider] Starting initialization...");
+      if (error) throw error;
+      return data ?? null;
+    } catch (err) {
+      console.error("Profile fetch failed:", err.message);
+      return null;
+    }
+  }, []);
 
-        // Get current session
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
-        if (sessionError) {
-          console.error("❌ [AuthProvider] Session error:", sessionError);
-          if (mounted) {
-            setCurrentUser(null);
-            setLoading(false);
-          }
-          return;
-        }
-
-        if (!session) {
-          console.log("❌ [AuthProvider] No active session");
-          if (mounted) {
-            setCurrentUser(null);
-            setLoading(false);
-          }
-          return;
-        }
-
-        console.log("✅ [AuthProvider] Session found, user ID:", session.user.id);
-
-        // Fetch user profile
-        const { data: profile, error: profileError } = await supabase
-          .from("users")
-          .select("*")
-          .eq("id", session.user.id)
-          .maybeSingle();
-
-        if (profileError) {
-          console.error("❌ [AuthProvider] Profile error:", profileError);
-          if (mounted) {
-            setCurrentUser(null);
-            setLoading(false);
-          }
-          return;
-        }
-
-        if (!profile) {
-          console.warn("⚠️ [AuthProvider] No profile found for user:", session.user.id);
-          if (mounted) {
-            setCurrentUser(null);
-            setLoading(false);
-          }
-          return;
-        }
-
-        console.log("✅ [AuthProvider] Profile loaded:", profile.name || profile.id);
-
-        if (mounted) {
-          setCurrentUser(profile);
-          setLoading(false);
-        }
-
-      } catch (err) {
-        console.error("❌ [AuthProvider] Unexpected error:", err);
-        if (mounted) {
-          setCurrentUser(null);
-          setLoading(false);
-        }
-      }
-    };
-
-    // Initialize auth
-    initAuth();
-
-    // Set up auth state listener
-    const setupAuthListener = () => {
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        async (event, session) => {
-          console.log("🔔 [AuthProvider] Auth event:", event);
-
-          if (!mounted) {
-            console.log("⏭️ [AuthProvider] Component unmounted, ignoring event");
-            return;
-          }
-
-          // Skip INITIAL_SESSION - we handle it in initAuth
-          if (event === "INITIAL_SESSION") {
-            console.log("⏭️ [AuthProvider] Skipping INITIAL_SESSION");
-            return;
-          }
-
-          // Handle sign out
-          if (event === "SIGNED_OUT") {
-            console.log("👋 [AuthProvider] User signed out");
-            setCurrentUser(null);
-            setLoading(false);
-            return;
-          }
-
-          // Handle sign in or token refresh
-          if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
-            if (!session) {
-              console.log("⚠️ [AuthProvider] No session in", event);
-              setCurrentUser(null);
-              setLoading(false);
-              return;
-            }
-
-            console.log("🔄 [AuthProvider] Refreshing profile for:", session.user.id);
-
-            try {
-              const { data: profile, error } = await supabase
-                .from("users")
-                .select("*")
-                .eq("id", session.user.id)
-                .maybeSingle();
-
-              if (error) {
-                console.error("❌ [AuthProvider] Profile refresh error:", error);
-                setCurrentUser(null);
-              } else if (profile) {
-                console.log("✅ [AuthProvider] Profile refreshed:", profile.name || profile.id);
-                setCurrentUser(profile);
-              } else {
-                console.warn("⚠️ [AuthProvider] No profile found on refresh");
-                setCurrentUser(null);
-              }
-            } catch (err) {
-              console.error("❌ [AuthProvider] Profile refresh failed:", err);
-              setCurrentUser(null);
-            }
-
-            setLoading(false);
-          }
-        }
-      );
-
-      authSubscription = subscription;
-      console.log("✅ [AuthProvider] Auth listener setup complete");
-    };
-
-    setupAuthListener();
-
-    // Safety timeout - force loading to complete
-    const safetyTimeout = setTimeout(() => {
-      if (mounted && loading) {
-        console.warn("⚠️ [AuthProvider] Safety timeout triggered - forcing load complete");
-        setLoading(false);
-      }
-    }, 5000);
-
-    // Cleanup
-    return () => {
-      console.log("🧹 [AuthProvider] Cleaning up...");
-      mounted = false;
-      if (authSubscription) {
-        authSubscription.unsubscribe();
-      }
-      clearTimeout(safetyTimeout);
-    };
-  }, []); // Empty dependency array - only run once
-
-  const refreshUser = async () => {
-    console.log("🔄 [AuthProvider] Manual refresh requested");
+  const initAuth = useCallback(async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        const { data: profile } = await supabase
-          .from("users")
-          .select("*")
-          .eq("id", session.user.id)
-          .maybeSingle();
-        setCurrentUser(profile || null);
-        console.log("✅ [AuthProvider] Manual refresh complete");
-      } else {
+
+      if (!session?.user) {
         setCurrentUser(null);
-        console.log("❌ [AuthProvider] No session on manual refresh");
+        setLoading(false);
+        return;
       }
+
+      // 🔑 IMPORTANT: set minimal user immediately
+      setCurrentUser({ id: session.user.id });
+
+      // 🔄 Fetch profile in background
+      loadProfile(session.user.id).then((profile) => {
+        if (profile) setCurrentUser(profile);
+      });
+
+      setLoading(false);
     } catch (err) {
-      console.error("❌ [AuthProvider] Manual refresh error:", err);
+      console.error("Auth init error:", err);
+      setLoading(false);
     }
-  };
+  }, [loadProfile]);
 
-  console.log("🎨 [AuthProvider] Rendering - loading:", loading, "user:", !!currentUser);
+  useEffect(() => {
+    initAuth();
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-black text-white">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-yellow-400 mx-auto mb-4"></div>
-          <p className="text-lg">Loading your session...</p>
-        </div>
-      </div>
-    );
-  }
-console.log("🔄 [AuthProvider] Starting initialization...");
+    const { data: { subscription } } =
+      supabase.auth.onAuthStateChange((event, session) => {
+        if (!session?.user) {
+          setCurrentUser(null);
+          return;
+        }
+
+        setCurrentUser({ id: session.user.id });
+        loadProfile(session.user.id).then((profile) => {
+          if (profile) setCurrentUser(profile);
+        });
+      });
+
+    return () => subscription.unsubscribe();
+  }, [initAuth, loadProfile]);
+
   return (
-    <AuthContext.Provider value={{ currentUser, loading, refreshUser }}>
+    <AuthContext.Provider value={{ currentUser, loading }}>
       {children}
     </AuthContext.Provider>
   );
