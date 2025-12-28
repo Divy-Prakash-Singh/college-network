@@ -2530,6 +2530,108 @@
 
 
 
+// "use client";
+
+// import { createContext, useEffect, useState } from "react";
+// import { supabase } from "@/lib/supabaseClient";
+
+// export const AuthContext = createContext({
+//   currentUser: null,
+//   loading: true,
+//   refreshUser: async () => {},
+// });
+
+// export default function AuthProvider({ children }) {
+//   const [currentUser, setCurrentUser] = useState(null);
+//   const [loading, setLoading] = useState(true);
+
+//   const loadProfile = async (userId) => {
+//     const { data, error } = await supabase
+//       .from("users")
+//       .select("*")
+//       .eq("id", userId)
+//       .single();
+
+//     if (error) {
+//       console.error("Profile load error:", error);
+//       return null;
+//     }
+//     return data;
+//   };
+
+//   useEffect(() => {
+//     let mounted = true;
+
+//     const init = async () => {
+//       const { data } = await supabase.auth.getSession();
+//       const session = data.session;
+
+//       if (!session?.user) {
+//         if (mounted) {
+//           setCurrentUser(null);
+//           setLoading(false);
+//         }
+//         return;
+//       }
+
+//       const profile = await loadProfile(session.user.id);
+
+//       if (mounted) {
+//         setCurrentUser(profile); // ✅ ALWAYS full profile
+//         setLoading(false);
+//       }
+//     };
+
+//     init();
+
+//     const { data: sub } = supabase.auth.onAuthStateChange(
+//       async (_event, session) => {
+//         if (!mounted) return;
+
+//         if (!session?.user) {
+//           setCurrentUser(null);
+//           return;
+//         }
+
+//         const profile = await loadProfile(session.user.id);
+//         setCurrentUser(profile);
+//       }
+//     );
+
+//     return () => {
+//       mounted = false;
+//       sub.subscription.unsubscribe();
+//     };
+//   }, []);
+
+//   const refreshUser = async () => {
+//     const { data } = await supabase.auth.getSession();
+//     if (!data.session?.user) return;
+
+//     const profile = await loadProfile(data.session.user.id);
+//     setCurrentUser(profile);
+//   };
+
+//   return (
+//     <AuthContext.Provider value={{ currentUser, loading, refreshUser }}>
+//       {children}
+//     </AuthContext.Provider>
+//   );
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 "use client";
 
 import { createContext, useEffect, useState } from "react";
@@ -2545,71 +2647,114 @@ export default function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const loadProfile = async (userId) => {
-    const { data, error } = await supabase
-      .from("users")
-      .select("*")
-      .eq("id", userId)
-      .single();
-
-    if (error) {
-      console.error("Profile load error:", error);
-      return null;
-    }
-    return data;
-  };
-
   useEffect(() => {
     let mounted = true;
 
-    const init = async () => {
-      const { data } = await supabase.auth.getSession();
-      const session = data.session;
+    const loadProfile = async (userId) => {
+      try {
+        const { data, error } = await supabase
+          .from("users")
+          .select("*")
+          .eq("id", userId)
+          .maybeSingle();
 
-      if (!session?.user) {
+        if (error) {
+          console.error("❌ [AuthProvider] Profile error:", error);
+          return null;
+        }
+        return data ?? null;
+      } catch (err) {
+        console.error("❌ [AuthProvider] Profile error:", err);
+        return null;
+      }
+    };
+
+    const initAuth = async () => {
+      try {
+        console.log("🔄 [AuthProvider] Starting...");
+
+        const { data: { session }, error } = await supabase.auth.getSession();
+
+        if (error || !session?.user) {
+          console.log("❌ [AuthProvider] No session");
+          if (mounted) {
+            setCurrentUser(null);
+            setLoading(false);
+          }
+          return;
+        }
+
+        console.log("✅ [AuthProvider] Session found:", session.user.id);
+
+        // Set loading false IMMEDIATELY
+        if (mounted) {
+          setLoading(false);
+          setCurrentUser({ id: session.user.id });
+        }
+
+        // Load profile in background
+        const profile = await loadProfile(session.user.id);
+        if (mounted && profile) {
+          setCurrentUser(profile);
+          console.log("✅ [AuthProvider] Profile loaded:", profile.name);
+        }
+      } catch (err) {
+        console.error("❌ [AuthProvider] Init error:", err);
         if (mounted) {
           setCurrentUser(null);
           setLoading(false);
         }
-        return;
-      }
-
-      const profile = await loadProfile(session.user.id);
-
-      if (mounted) {
-        setCurrentUser(profile); // ✅ ALWAYS full profile
-        setLoading(false);
       }
     };
 
-    init();
+    initAuth();
 
-    const { data: sub } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        if (!mounted) return;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log("🔔 [AuthProvider] Event:", event);
+        if (!mounted || event === "INITIAL_SESSION") return;
 
-        if (!session?.user) {
+        if (event === "SIGNED_OUT") {
           setCurrentUser(null);
-          return;
+        } else if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+          if (session?.user) {
+            setCurrentUser({ id: session.user.id });
+            const profile = await loadProfile(session.user.id);
+            if (mounted && profile) setCurrentUser(profile);
+          }
         }
-
-        const profile = await loadProfile(session.user.id);
-        setCurrentUser(profile);
       }
     );
 
+    // Safety timeout
+    const timeout = setTimeout(() => {
+      if (mounted && loading) {
+        console.warn("⚠️ [AuthProvider] Timeout - forcing complete");
+        setLoading(false);
+      }
+    }, 3000);
+
     return () => {
       mounted = false;
-      sub.subscription.unsubscribe();
+      subscription.unsubscribe();
+      clearTimeout(timeout);
     };
   }, []);
 
   const refreshUser = async () => {
-    const { data } = await supabase.auth.getSession();
-    if (!data.session?.user) return;
-
-    const profile = await loadProfile(data.session.user.id);
-    setCurrentUser(profile);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from("users")
+          .select("*")
+          .eq("id", session.user.id)
+          .maybeSingle();
+        setCurrentUser(profile || null);
+      }
+    } catch (err) {
+      console.error("Refresh error:", err);
+    }
   };
 
   return (

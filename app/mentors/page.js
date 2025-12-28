@@ -805,7 +805,7 @@
 
 
 
-
+//this is my mentors/page.js
 
 "use client";
 import { useEffect, useState } from "react";
@@ -842,6 +842,8 @@ export default function MentorsPage() {
   const [activeFilter, setActiveFilter] = useState("All");
   const [loading, setLoading] = useState(true);
 
+  const { currentUser, loading: authLoading } = useContext(AuthContext);
+
   useEffect(() => {
     const fetchMentors = async () => {
       setLoading(true);
@@ -877,6 +879,15 @@ export default function MentorsPage() {
       ? mentors
       : mentors.filter((m) => m.categories?.includes(activeFilter));
 
+
+      useEffect(() => {
+  if (!authLoading && !currentUser) {
+    router.replace("/login");
+  }
+}, [authLoading, currentUser, router]);
+
+
+if (authLoading) {
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-900 via-black to-black text-white">
       <Navbar />
@@ -964,4 +975,5 @@ export default function MentorsPage() {
       <BottomNavbar />
     </div>
   );
+}
 }
