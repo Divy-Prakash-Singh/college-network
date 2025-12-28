@@ -1542,6 +1542,30 @@ export default function AskQuestionPage() {
     setPageReady(true);
   }, [authLoading, currentUser, router]);
 
+
+
+
+
+
+
+
+
+
+  useEffect(() => {
+  console.log("🐛 [Page] Auth state:", { 
+    loading: authLoading, 
+    hasUser: !!currentUser,
+    userId: currentUser?.id 
+  });
+}, [authLoading, currentUser]);
+
+
+
+
+
+
+
+
   // Fetch mentor info
   useEffect(() => {
     if (!pageReady || !toMentorId) {
