@@ -2630,6 +2630,149 @@
 
 
 
+// //AuthProvider.jsx
+
+// "use client";
+
+// import { createContext, useEffect, useState } from "react";
+// import { supabase } from "@/lib/supabaseClient";
+
+// export const AuthContext = createContext({
+//   currentUser: null,
+//   loading: true,
+//   refreshUser: async () => {},
+// });
+
+// export default function AuthProvider({ children }) {
+//   const [currentUser, setCurrentUser] = useState(null);
+//   const [loading, setLoading] = useState(true);
+
+//   useEffect(() => {
+//     let mounted = true;
+
+//     const loadProfile = async (userId) => {
+//       try {
+//         const { data, error } = await supabase
+//           .from("users")
+//           .select("*")
+//           .eq("id", userId)
+//           .maybeSingle();
+
+//         if (error) {
+//           console.error("❌ [AuthProvider] Profile error:", error);
+//           return null;
+//         }
+//         return data ?? null;
+//       } catch (err) {
+//         console.error("❌ [AuthProvider] Profile error:", err);
+//         return null;
+//       }
+//     };
+
+//     const initAuth = async () => {
+//       try {
+//         console.log("🔄 [AuthProvider] Starting...");
+
+//         const { data: { session }, error } = await supabase.auth.getSession();
+
+//         if (error || !session?.user) {
+//           console.log("❌ [AuthProvider] No session");
+//           if (mounted) {
+//             setCurrentUser(null);
+//             setLoading(false);
+//           }
+//           return;
+//         }
+
+//         console.log("✅ [AuthProvider] Session found:", session.user.id);
+
+//         // Set loading false IMMEDIATELY
+//         if (mounted) {
+//           setLoading(false);
+//           setCurrentUser({ id: session.user.id });
+//         }
+
+//         // Load profile in background
+//         const profile = await loadProfile(session.user.id);
+//         if (mounted && profile) {
+//           setCurrentUser(profile);
+//           console.log("✅ [AuthProvider] Profile loaded:", profile.name);
+//         }
+//       } catch (err) {
+//         console.error("❌ [AuthProvider] Init error:", err);
+//         if (mounted) {
+//           setCurrentUser(null);
+//           setLoading(false);
+//         }
+//       }
+//     };
+
+//     initAuth();
+
+//     const { data: { subscription } } = supabase.auth.onAuthStateChange(
+//       async (event, session) => {
+//         console.log("🔔 [AuthProvider] Event:", event);
+//         if (!mounted || event === "INITIAL_SESSION") return;
+
+//         if (event === "SIGNED_OUT") {
+//           setCurrentUser(null);
+//         } else if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+//           if (session?.user) {
+//             setCurrentUser({ id: session.user.id });
+//             const profile = await loadProfile(session.user.id);
+//             if (mounted && profile) setCurrentUser(profile);
+//           }
+//         }
+//       }
+//     );
+
+//     // Safety timeout
+//     const timeout = setTimeout(() => {
+//       if (mounted && loading) {
+//         console.warn("⚠️ [AuthProvider] Timeout - forcing complete");
+//         setLoading(false);
+//       }
+//     }, 3000);
+
+//     return () => {
+//       mounted = false;
+//       subscription.unsubscribe();
+//       clearTimeout(timeout);
+//     };
+//   }, []);
+
+//   const refreshUser = async () => {
+//     try {
+//       const { data: { session } } = await supabase.auth.getSession();
+//       if (session?.user) {
+//         const { data: profile } = await supabase
+//           .from("users")
+//           .select("*")
+//           .eq("id", session.user.id)
+//           .maybeSingle();
+//         setCurrentUser(profile || null);
+//       }
+//     } catch (err) {
+//       console.error("Refresh error:", err);
+//     }
+//   };
+
+//   return (
+//     <AuthContext.Provider value={{ currentUser, loading, refreshUser }}>
+//       {children}
+//     </AuthContext.Provider>
+//   );
+// }
+
+
+
+
+
+
+
+
+
+
 
 
 "use client";
@@ -2651,114 +2794,48 @@ export default function AuthProvider({ children }) {
     let mounted = true;
 
     const loadProfile = async (userId) => {
-      try {
-        const { data, error } = await supabase
-          .from("users")
-          .select("*")
-          .eq("id", userId)
-          .maybeSingle();
-
-        if (error) {
-          console.error("❌ [AuthProvider] Profile error:", error);
-          return null;
-        }
-        return data ?? null;
-      } catch (err) {
-        console.error("❌ [AuthProvider] Profile error:", err);
-        return null;
-      }
+      const { data } = await supabase
+        .from("users")
+        .select("*")
+        .eq("id", userId)
+        .maybeSingle();
+      return data ?? { id: userId };
     };
 
-    const initAuth = async () => {
-      try {
-        console.log("🔄 [AuthProvider] Starting...");
+    const init = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!mounted) return;
 
-        const { data: { session }, error } = await supabase.auth.getSession();
-
-        if (error || !session?.user) {
-          console.log("❌ [AuthProvider] No session");
-          if (mounted) {
-            setCurrentUser(null);
-            setLoading(false);
-          }
-          return;
-        }
-
-        console.log("✅ [AuthProvider] Session found:", session.user.id);
-
-        // Set loading false IMMEDIATELY
-        if (mounted) {
-          setLoading(false);
-          setCurrentUser({ id: session.user.id });
-        }
-
-        // Load profile in background
-        const profile = await loadProfile(session.user.id);
-        if (mounted && profile) {
-          setCurrentUser(profile);
-          console.log("✅ [AuthProvider] Profile loaded:", profile.name);
-        }
-      } catch (err) {
-        console.error("❌ [AuthProvider] Init error:", err);
-        if (mounted) {
-          setCurrentUser(null);
-          setLoading(false);
-        }
-      }
-    };
-
-    initAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log("🔔 [AuthProvider] Event:", event);
-        if (!mounted || event === "INITIAL_SESSION") return;
-
-        if (event === "SIGNED_OUT") {
-          setCurrentUser(null);
-        } else if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
-          if (session?.user) {
-            setCurrentUser({ id: session.user.id });
-            const profile = await loadProfile(session.user.id);
-            if (mounted && profile) setCurrentUser(profile);
-          }
-        }
-      }
-    );
-
-    // Safety timeout
-    const timeout = setTimeout(() => {
-      if (mounted && loading) {
-        console.warn("⚠️ [AuthProvider] Timeout - forcing complete");
+      if (!data?.session?.user) {
+        setCurrentUser(null);
         setLoading(false);
+        return;
       }
-    }, 3000);
+
+      setCurrentUser({ id: data.session.user.id });
+      setLoading(false);
+
+      const profile = await loadProfile(data.session.user.id);
+      if (mounted) setCurrentUser(profile);
+    };
+
+    init();
+
+    const { data: { subscription } } =
+      supabase.auth.onAuthStateChange((_event, session) => {
+        if (!mounted) return;
+        if (!session?.user) setCurrentUser(null);
+        else setCurrentUser({ id: session.user.id });
+      });
 
     return () => {
       mounted = false;
       subscription.unsubscribe();
-      clearTimeout(timeout);
     };
   }, []);
 
-  const refreshUser = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        const { data: profile } = await supabase
-          .from("users")
-          .select("*")
-          .eq("id", session.user.id)
-          .maybeSingle();
-        setCurrentUser(profile || null);
-      }
-    } catch (err) {
-      console.error("Refresh error:", err);
-    }
-  };
-
   return (
-    <AuthContext.Provider value={{ currentUser, loading, refreshUser }}>
+    <AuthContext.Provider value={{ currentUser, loading }}>
       {children}
     </AuthContext.Provider>
   );

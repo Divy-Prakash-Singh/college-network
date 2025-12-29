@@ -813,6 +813,320 @@
 
 
 
+// //this is message/page.js
+
+// "use client";
+
+// import React, { useEffect, useMemo, useState, useContext } from "react";
+// import Navbar from "@/components/Navbar";
+// import BottomNavbar from "@/components/BottomNavbar";
+// import { MessageCircle, Clock, ArrowRight, Star, X } from "lucide-react";
+// import { supabase } from "@/lib/supabaseClient";
+// import { AuthContext } from "@/lib/AuthProvider";
+// import QueBox from "@/components/QueBox";
+
+// export default function MessagePage() {
+//   const { currentUser, loading: authLoading } = useContext(AuthContext);
+
+//   const [activeFilter, setActiveFilter] = useState("Questions for You");
+//   const [questionsForYou, setQuestionsForYou] = useState([]);
+//   const [allCategoryQuestions, setAllCategoryQuestions] = useState([]);
+//   const [loading, setLoading] = useState(true);
+
+//   const [isModalOpen, setIsModalOpen] = useState(false);
+//   const [selectedQuestion, setSelectedQuestion] = useState(null);
+
+//   // 🔍 derived list depending on tab
+//   const filteredQuestions = useMemo(() => {
+//     return activeFilter === "Questions for You" ? questionsForYou : allCategoryQuestions;
+//   }, [activeFilter, questionsForYou, allCategoryQuestions]);
+
+//   useEffect(() => {
+//     if (authLoading) return;
+//     if (!currentUser) {
+//       setLoading(false);
+//       return;
+//     }
+
+//     const loadQuestions = async () => {
+//       setLoading(true);
+
+//       // 🟢 1️⃣ Fetch questions assigned directly to current mentor
+//       const { data: assignedData, error: assignedErr } = await supabase
+//         .from("questions")
+//         .select(`
+//           id, title, question, category, created_at, image, author_id, assigned_to,
+//           users:author_id ( name, profile_image, branch )
+//         `)
+//         .eq("assigned_to", currentUser.id)
+//         .order("created_at", { ascending: false });
+
+//       if (assignedErr) {
+//         console.error("❌ Error fetching assigned questions:", assignedErr.message);
+//       }
+
+//       setQuestionsForYou(assignedData || []);
+
+//       // 🟡 2️⃣ Fetch category-based questions
+//       const myCats = Array.isArray(currentUser.categories)
+//         ? currentUser.categories.filter(Boolean)
+//         : [];
+
+//       if (myCats.length === 0) {
+//         console.warn("⚠️ User has no categories defined.");
+//         setAllCategoryQuestions([]);
+//         setLoading(false);
+//         return;
+//       }
+
+//       const { data: catData, error: catErr } = await supabase
+//         .from("questions")
+//         .select(`
+//           id, title, question, category, created_at, image, author_id, assigned_to,
+//           users:author_id ( name, profile_image, branch )
+//         `)
+//         .in("category", myCats)
+//         .order("created_at", { ascending: false });
+
+//       if (catErr) {
+//         console.error("❌ Error fetching category questions:", catErr.message);
+//       }
+
+//       // 🧠 Filter out questions already assigned to this mentor (to avoid duplication)
+//       const finalCategoryList = (catData || []).filter(
+//         (q) => !q.assigned_to || q.assigned_to !== currentUser.id
+//       );
+
+//       setAllCategoryQuestions(finalCategoryList);
+//       setLoading(false);
+//     };
+
+//     loadQuestions();
+//   }, [authLoading, currentUser]);
+
+//   const openModal = (q) => {
+//     setSelectedQuestion(q);
+//     setIsModalOpen(true);
+//   };
+
+//   const closeModal = () => {
+//     setIsModalOpen(false);
+//     setSelectedQuestion(null);
+//   };
+// if (authLoading) {
+
+//   return (
+//     <div className="min-h-screen bg-gradient-to-b from-purple-900 via-black to-black text-white relative">
+//       <Navbar />
+
+//       {/* Header */}
+//       <section className="max-w-7xl mx-auto px-4 pt-10 pb-6">
+//         <div className="flex items-center gap-3 mb-4">
+//           <div className="w-10 h-10 bg-gradient-to-br from-yellow-400 to-amber-500 rounded-full flex items-center justify-center text-black font-extrabold shadow-lg">
+//             <MessageCircle size={20} />
+//           </div>
+//           <span className="text-white/70">Messages</span>
+//         </div>
+//         <h1 className="text-2xl md:text-3xl font-semibold">Answer Questions</h1>
+//         <p className="text-white/70 text-sm mt-1">
+//           {authLoading
+//             ? "Loading your profile…"
+//             : !currentUser
+//             ? "Log in to see questions in your categories."
+//             : "Help juniors by sharing your knowledge."}
+//         </p>
+//       </section>
+
+//       {/* Filter Buttons */}
+//       <section className="max-w-7xl mx-auto px-4 pb-6">
+//         <div className="flex gap-3">
+//           {["Questions for You", "All Questions"].map((filter) => (
+//             <button
+//               key={filter}
+//               onClick={() => setActiveFilter(filter)}
+//               className={`px-6 py-3 rounded-lg text-sm font-medium transition-all ${
+//                 activeFilter === filter
+//                   ? "bg-yellow-400 text-black shadow-lg"
+//                   : "bg-white/10 border border-white/15 text-white/80 hover:bg-white/20"
+//               }`}
+//             >
+//               {filter}
+//             </button>
+//           ))}
+//         </div>
+//       </section>
+
+//       {/* Questions Display */}
+//       <section className="max-w-7xl mx-auto px-4 pb-24">
+//         {loading ? (
+//           <p className="text-gray-400 text-center py-10">Loading questions...</p>
+//         ) : !currentUser ? (
+//           <div className="text-center py-12">
+//             <MessageCircle size={48} className="text-white/40 mx-auto mb-4" />
+//             <h3 className="text-lg font-medium text-white/60 mb-2">
+//               You’re not logged in
+//             </h3>
+//             <p className="text-sm text-white/40">
+//               Please sign in to see questions in your categories.
+//             </p>
+//           </div>
+//         ) : filteredQuestions.length === 0 ? (
+//           <div className="text-center py-12">
+//             <MessageCircle size={48} className="text-white/40 mx-auto mb-4" />
+//             <h3 className="text-lg font-medium text-white/60 mb-2">
+//               No questions found
+//             </h3>
+//             <p className="text-sm text-white/40">
+//               Try changing your filter or check back later.
+//             </p>
+//           </div>
+//         ) : (
+//           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+//             {filteredQuestions.map((q) => (
+//               <div
+//                 key={q.id}
+//                 className="bg-white/5 border border-white/10 rounded-2xl shadow-2xl backdrop-blur-md p-6 hover:bg-white/10 transition-all cursor-pointer group"
+//                 onClick={() => openModal(q)}
+//               >
+//                 {/* Header */}
+//                 <div className="flex items-start justify-between mb-4">
+//                   <div className="flex items-center gap-3">
+//                     <img
+//                       src={
+//                         q.users?.profile_image ||
+//                         "https://via.placeholder.com/48?text=U"
+//                       }
+//                       alt={q.users?.name || "Author"}
+//                       className="w-12 h-12 rounded-full border border-white/20 object-cover"
+//                     />
+//                     <div>
+//                       <h3 className="font-semibold text-white/90 group-hover:text-yellow-400 transition">
+//                         {q.users?.name || "Anonymous"}
+//                       </h3>
+//                       <p className="text-xs text-white/60">
+//                         {q.users?.branch || "Department"}
+//                       </p>
+//                     </div>
+//                   </div>
+//                   <div className="text-xs bg-yellow-400/20 text-yellow-400 px-3 py-1 rounded-full border border-yellow-400/30 font-medium">
+//                     {q.category || "General"}
+//                   </div>
+//                 </div>
+
+//                 {/* Title and Question */}
+//                 <h4 className="font-semibold text-white/90 mb-1 group-hover:text-yellow-400 line-clamp-2">
+//                   {q.title}
+//                 </h4>
+//                 <p className="text-sm text-white/70 mb-4 leading-relaxed line-clamp-3">
+//                   {q.question}
+//                 </p>
+
+//                 {/* Optional image preview */}
+//                 {q.image && (
+//                   <img
+//                     src={q.image}
+//                     alt="Question image"
+//                     className="rounded-md mb-3 border border-white/10 max-h-48 object-cover"
+//                   />
+//                 )}
+
+//                 {/* Footer */}
+//                 <div className="flex items-center justify-between text-xs text-white/60 mb-2">
+//                   <div className="flex items-center gap-2">
+//                     <Star size={14} className="text-yellow-400" />
+//                     <span>Answers</span>
+//                   </div>
+//                   <div className="flex items-center gap-1">
+//                     <Clock size={12} />
+//                     <span>
+//                       {q.created_at
+//                         ? new Date(q.created_at).toLocaleString()
+//                         : "Just now"}
+//                     </span>
+//                   </div>
+//                 </div>
+
+//                 <div className="flex items-center justify-between">
+//                   <span className="text-xs text-white/60">Click to view & answer</span>
+//                   <ArrowRight
+//                     size={16}
+//                     className="text-white/60 group-hover:text-yellow-400 transition-colors"
+//                   />
+//                 </div>
+//               </div>
+//             ))}
+//           </div>
+//         )}
+//       </section>
+
+//       {/* Modal (Full Q&A) */}
+//       {isModalOpen && selectedQuestion && (
+//         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+//           <div className="bg-gray-900 w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-xl p-6 border border-white/10 relative">
+//             <button
+//               onClick={closeModal}
+//               className="absolute top-3 right-3 text-gray-400 hover:text-white"
+//               aria-label="Close"
+//             >
+//               <X size={20} />
+//             </button>
+
+//             <div className="flex items-center gap-3 mb-4">
+//               <img
+//                 src={
+//                   selectedQuestion.users?.profile_image ||
+//                   "https://via.placeholder.com/48?text=U"
+//                 }
+//                 alt={selectedQuestion.users?.name || "Author"}
+//                 className="w-12 h-12 rounded-full border border-white/20 object-cover"
+//               />
+//               <div>
+//                 <h3 className="font-semibold text-white">
+//                   {selectedQuestion.users?.name || "Anonymous"}
+//                 </h3>
+//                 <p className="text-xs text-white/60">
+//                   {selectedQuestion.users?.branch || "Department"}
+//                 </p>
+//               </div>
+//               <span className="ml-auto text-xs bg-yellow-400/20 text-yellow-400 px-3 py-1 rounded-full border border-yellow-400/30 font-medium">
+//                 {selectedQuestion.category || "General"}
+//               </span>
+//             </div>
+
+//             <h2 className="text-xl text-yellow-400 font-bold">{selectedQuestion.title}</h2>
+//             <p className="text-sm text-white/80 mt-2">{selectedQuestion.question}</p>
+
+//             {selectedQuestion.image && (
+//               <img
+//                 src={selectedQuestion.image}
+//                 alt="Question attachment"
+//                 className="mt-4 rounded-lg border border-white/10"
+//               />
+//             )}
+
+//             <div className="mt-6">
+//               <QueBox
+//                 id={selectedQuestion.id}
+//                 category={selectedQuestion.category}
+//                 que={selectedQuestion.question}
+//               />
+//             </div>
+//           </div>
+//         </div>
+//       )}
+
+//       <BottomNavbar />
+//     </div>
+//   );
+// }
+// }
+
+
+
+
+
+
+
 
 
 "use client";
@@ -824,8 +1138,10 @@ import { MessageCircle, Clock, ArrowRight, Star, X } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { AuthContext } from "@/lib/AuthProvider";
 import QueBox from "@/components/QueBox";
+import { useRouter } from "next/navigation";
 
 export default function MessagePage() {
+  const router = useRouter();
   const { currentUser, loading: authLoading } = useContext(AuthContext);
 
   const [activeFilter, setActiveFilter] = useState("Questions for You");
@@ -836,23 +1152,34 @@ export default function MessagePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedQuestion, setSelectedQuestion] = useState(null);
 
-  // 🔍 derived list depending on tab
+  /* 🔐 REDIRECT ONLY (NO BLOCKING) */
+  useEffect(() => {
+    if (!authLoading && !currentUser) {
+      router.replace("/login");
+    }
+  }, [authLoading, currentUser, router]);
+
+  /* 🔍 derived list depending on tab */
   const filteredQuestions = useMemo(() => {
-    return activeFilter === "Questions for You" ? questionsForYou : allCategoryQuestions;
+    return activeFilter === "Questions for You"
+      ? questionsForYou
+      : allCategoryQuestions;
   }, [activeFilter, questionsForYou, allCategoryQuestions]);
 
+  /* 📥 LOAD QUESTIONS */
   useEffect(() => {
-    if (authLoading) return;
     if (!currentUser) {
       setLoading(false);
       return;
     }
 
+    let mounted = true;
+
     const loadQuestions = async () => {
       setLoading(true);
 
-      // 🟢 1️⃣ Fetch questions assigned directly to current mentor
-      const { data: assignedData, error: assignedErr } = await supabase
+      // 1️⃣ Assigned questions
+      const { data: assignedData } = await supabase
         .from("questions")
         .select(`
           id, title, question, category, created_at, image, author_id, assigned_to,
@@ -861,25 +1188,24 @@ export default function MessagePage() {
         .eq("assigned_to", currentUser.id)
         .order("created_at", { ascending: false });
 
-      if (assignedErr) {
-        console.error("❌ Error fetching assigned questions:", assignedErr.message);
+      if (mounted) {
+        setQuestionsForYou(assignedData || []);
       }
 
-      setQuestionsForYou(assignedData || []);
-
-      // 🟡 2️⃣ Fetch category-based questions
+      // 2️⃣ Category-based questions
       const myCats = Array.isArray(currentUser.categories)
         ? currentUser.categories.filter(Boolean)
         : [];
 
       if (myCats.length === 0) {
-        console.warn("⚠️ User has no categories defined.");
-        setAllCategoryQuestions([]);
-        setLoading(false);
+        if (mounted) {
+          setAllCategoryQuestions([]);
+          setLoading(false);
+        }
         return;
       }
 
-      const { data: catData, error: catErr } = await supabase
+      const { data: catData } = await supabase
         .from("questions")
         .select(`
           id, title, question, category, created_at, image, author_id, assigned_to,
@@ -888,21 +1214,22 @@ export default function MessagePage() {
         .in("category", myCats)
         .order("created_at", { ascending: false });
 
-      if (catErr) {
-        console.error("❌ Error fetching category questions:", catErr.message);
-      }
-
-      // 🧠 Filter out questions already assigned to this mentor (to avoid duplication)
       const finalCategoryList = (catData || []).filter(
         (q) => !q.assigned_to || q.assigned_to !== currentUser.id
       );
 
-      setAllCategoryQuestions(finalCategoryList);
-      setLoading(false);
+      if (mounted) {
+        setAllCategoryQuestions(finalCategoryList);
+        setLoading(false);
+      }
     };
 
     loadQuestions();
-  }, [authLoading, currentUser]);
+
+    return () => {
+      mounted = false;
+    };
+  }, [currentUser]);
 
   const openModal = (q) => {
     setSelectedQuestion(q);
@@ -913,7 +1240,6 @@ export default function MessagePage() {
     setIsModalOpen(false);
     setSelectedQuestion(null);
   };
-if (authLoading) {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-900 via-black to-black text-white relative">
@@ -929,11 +1255,7 @@ if (authLoading) {
         </div>
         <h1 className="text-2xl md:text-3xl font-semibold">Answer Questions</h1>
         <p className="text-white/70 text-sm mt-1">
-          {authLoading
-            ? "Loading your profile…"
-            : !currentUser
-            ? "Log in to see questions in your categories."
-            : "Help juniors by sharing your knowledge."}
+          Help juniors by sharing your knowledge.
         </p>
       </section>
 
@@ -956,20 +1278,10 @@ if (authLoading) {
         </div>
       </section>
 
-      {/* Questions Display */}
+      {/* Questions */}
       <section className="max-w-7xl mx-auto px-4 pb-24">
         {loading ? (
           <p className="text-gray-400 text-center py-10">Loading questions...</p>
-        ) : !currentUser ? (
-          <div className="text-center py-12">
-            <MessageCircle size={48} className="text-white/40 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-white/60 mb-2">
-              You’re not logged in
-            </h3>
-            <p className="text-sm text-white/40">
-              Please sign in to see questions in your categories.
-            </p>
-          </div>
         ) : filteredQuestions.length === 0 ? (
           <div className="text-center py-12">
             <MessageCircle size={48} className="text-white/40 mx-auto mb-4" />
@@ -985,124 +1297,36 @@ if (authLoading) {
             {filteredQuestions.map((q) => (
               <div
                 key={q.id}
-                className="bg-white/5 border border-white/10 rounded-2xl shadow-2xl backdrop-blur-md p-6 hover:bg-white/10 transition-all cursor-pointer group"
+                className="bg-white/5 border border-white/10 rounded-2xl shadow-2xl p-6 hover:bg-white/10 transition cursor-pointer"
                 onClick={() => openModal(q)}
               >
-                {/* Header */}
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <img
-                      src={
-                        q.users?.profile_image ||
-                        "https://via.placeholder.com/48?text=U"
-                      }
-                      alt={q.users?.name || "Author"}
-                      className="w-12 h-12 rounded-full border border-white/20 object-cover"
-                    />
-                    <div>
-                      <h3 className="font-semibold text-white/90 group-hover:text-yellow-400 transition">
-                        {q.users?.name || "Anonymous"}
-                      </h3>
-                      <p className="text-xs text-white/60">
-                        {q.users?.branch || "Department"}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-xs bg-yellow-400/20 text-yellow-400 px-3 py-1 rounded-full border border-yellow-400/30 font-medium">
-                    {q.category || "General"}
-                  </div>
-                </div>
-
-                {/* Title and Question */}
-                <h4 className="font-semibold text-white/90 mb-1 group-hover:text-yellow-400 line-clamp-2">
-                  {q.title}
-                </h4>
-                <p className="text-sm text-white/70 mb-4 leading-relaxed line-clamp-3">
+                <h4 className="font-semibold mb-1">{q.title}</h4>
+                <p className="text-sm text-white/70 line-clamp-3">
                   {q.question}
                 </p>
-
-                {/* Optional image preview */}
-                {q.image && (
-                  <img
-                    src={q.image}
-                    alt="Question image"
-                    className="rounded-md mb-3 border border-white/10 max-h-48 object-cover"
-                  />
-                )}
-
-                {/* Footer */}
-                <div className="flex items-center justify-between text-xs text-white/60 mb-2">
-                  <div className="flex items-center gap-2">
-                    <Star size={14} className="text-yellow-400" />
-                    <span>Answers</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Clock size={12} />
-                    <span>
-                      {q.created_at
-                        ? new Date(q.created_at).toLocaleString()
-                        : "Just now"}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-white/60">Click to view & answer</span>
-                  <ArrowRight
-                    size={16}
-                    className="text-white/60 group-hover:text-yellow-400 transition-colors"
-                  />
-                </div>
               </div>
             ))}
           </div>
         )}
       </section>
 
-      {/* Modal (Full Q&A) */}
+      {/* Modal */}
       {isModalOpen && selectedQuestion && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 px-4">
-          <div className="bg-gray-900 w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-xl p-6 border border-white/10 relative">
+          <div className="bg-gray-900 w-full max-w-2xl rounded-xl p-6 border border-white/10 relative">
             <button
               onClick={closeModal}
               className="absolute top-3 right-3 text-gray-400 hover:text-white"
-              aria-label="Close"
             >
               <X size={20} />
             </button>
 
-            <div className="flex items-center gap-3 mb-4">
-              <img
-                src={
-                  selectedQuestion.users?.profile_image ||
-                  "https://via.placeholder.com/48?text=U"
-                }
-                alt={selectedQuestion.users?.name || "Author"}
-                className="w-12 h-12 rounded-full border border-white/20 object-cover"
-              />
-              <div>
-                <h3 className="font-semibold text-white">
-                  {selectedQuestion.users?.name || "Anonymous"}
-                </h3>
-                <p className="text-xs text-white/60">
-                  {selectedQuestion.users?.branch || "Department"}
-                </p>
-              </div>
-              <span className="ml-auto text-xs bg-yellow-400/20 text-yellow-400 px-3 py-1 rounded-full border border-yellow-400/30 font-medium">
-                {selectedQuestion.category || "General"}
-              </span>
-            </div>
-
-            <h2 className="text-xl text-yellow-400 font-bold">{selectedQuestion.title}</h2>
-            <p className="text-sm text-white/80 mt-2">{selectedQuestion.question}</p>
-
-            {selectedQuestion.image && (
-              <img
-                src={selectedQuestion.image}
-                alt="Question attachment"
-                className="mt-4 rounded-lg border border-white/10"
-              />
-            )}
+            <h2 className="text-xl text-yellow-400 font-bold">
+              {selectedQuestion.title}
+            </h2>
+            <p className="text-sm text-white/80 mt-2">
+              {selectedQuestion.question}
+            </p>
 
             <div className="mt-6">
               <QueBox
@@ -1118,5 +1342,4 @@ if (authLoading) {
       <BottomNavbar />
     </div>
   );
-}
 }

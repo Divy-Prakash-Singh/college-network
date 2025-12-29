@@ -805,15 +805,202 @@
 
 
 
-//this is my mentors/page.js
+// //this is my mentors/page.js
+
+// "use client";
+// import { useEffect, useState } from "react";
+// import Navbar from "@/components/Navbar";
+// import BottomNavbar from "@/components/BottomNavbar";
+// import Link from "next/link";
+// import { supabase } from "@/lib/supabaseClient";
+// import { BookOpen, MessageCircle } from "lucide-react";
+
+// const FIXED_CATEGORIES = [
+//   "All",
+//   "Civil",
+//   "Computer Science",
+//   "Electrical",
+//   "Electronics & Communication",
+//   "Mechanical",
+//   "Information Technology",
+//   "Production & Industrial Engineering",
+//   "Artificial Intelligence & Data Science",
+//   "Robotics & Automation",
+//   "Sustainable Energy Engineering",
+//   "GATE",
+//   "UPSC",
+//   "DSA",
+//   "Web Dev",
+//   "Finance",
+//   "Startup",
+//   "AI",
+// ];
+
+// export default function MentorsPage() {
+//   const [mentors, setMentors] = useState([]);
+//   const [categories] = useState(FIXED_CATEGORIES); // ✅ fixed list
+//   const [activeFilter, setActiveFilter] = useState("All");
+//   const [loading, setLoading] = useState(true);
+
+//   const { currentUser, loading: authLoading } = useContext(AuthContext);
+
+//   useEffect(() => {
+//     const fetchMentors = async () => {
+//       setLoading(true);
+
+//       const { data: usersData } = await supabase
+//         .from("users")
+//         .select("id,name,branch,bio,categories,profile_image,is_mentor")
+//         .eq("is_mentor", true);
+
+//       if (!usersData) return;
+
+//       const withAnswersCount = await Promise.all(
+//         usersData.map(async (m) => {
+//           const { count } = await supabase
+//             .from("answers")
+//             .select("question_id", { count: "exact", head: true })
+//             .eq("author_id", m.id)
+//             .then((res) => ({ count: res.count || 0 }));
+
+//           return { ...m, answeredQuestions: count };
+//         })
+//       );
+
+//       setMentors(withAnswersCount);
+//       setLoading(false);
+//     };
+
+//     fetchMentors();
+//   }, []);
+
+//   const filteredMentors =
+//     activeFilter === "All"
+//       ? mentors
+//       : mentors.filter((m) => m.categories?.includes(activeFilter));
+
+
+//       useEffect(() => {
+//   if (!authLoading && !currentUser) {
+//     router.replace("/login");
+//   }
+// }, [authLoading, currentUser, router]);
+
+
+// if (authLoading) {
+//   return (
+//     <div className="min-h-screen bg-gradient-to-b from-purple-900 via-black to-black text-white">
+//       <Navbar />
+
+//       <section className="max-w-7xl mx-auto px-4 pt-10 pb-6">
+//         <h1 className="text-2xl md:text-3xl font-semibold">Find Your Mentor</h1>
+//         <p className="text-white/70 text-sm mt-1">
+//           Connect with verified mentors across different domains.
+//         </p>
+//       </section>
+
+//       <section className="max-w-7xl mx-auto px-4 pb-6 overflow-x-auto scrollbar-hide flex gap-3">
+//         {categories.map((cat) => (
+//           <button
+//             key={cat}
+//             onClick={() => setActiveFilter(cat)}
+//             className={`whitespace-nowrap px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+//               activeFilter === cat
+//                 ? "bg-yellow-400 text-black shadow-lg"
+//                 : "bg-white/10 border border-white/15 text-white/80 hover:bg-white/20"
+//             }`}
+//           >
+//             {cat}
+//           </button>
+//         ))}
+//       </section>
+
+//       <section className="max-w-7xl mx-auto px-4 pb-24">
+//         {loading ? (
+//           <p className="text-center text-gray-400">Loading mentors...</p>
+//         ) : filteredMentors.length === 0 ? (
+//           <p className="text-center text-gray-400">No mentors found.</p>
+//         ) : (
+//           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+//             {filteredMentors.map((mentor) => (
+//               <div
+//                 key={mentor.id}
+//                 className="bg-white/5 border border-white/10 rounded-2xl shadow-2xl backdrop-blur-md p-6 hover:bg-white/10 transition-all duration-200"
+//               >
+//                 <div className="flex items-center gap-4 mb-4">
+//                   <img
+//                     src={
+//                       mentor.profile_image ||
+//                       "https://via.placeholder.com/80?text=User"
+//                     }
+//                     alt={mentor.name}
+//                     className="w-14 h-14 rounded-full border-2 border-yellow-400/40 object-cover"
+//                   />
+//                   <div>
+//                     <h3 className="font-semibold text-lg text-white">
+//                       {mentor.name}
+//                     </h3>
+//                     <p className="text-sm text-gray-400">
+//                       {mentor.branch || "Branch not set"}
+//                     </p>
+//                   </div>
+//                 </div>
+
+//                 <p className="text-gray-300 text-sm leading-relaxed mb-4">
+//                   {mentor.bio || "No bio provided"}
+//                 </p>
+
+//                 <div className="flex items-center justify-between mt-4">
+//                   <div className="flex items-center gap-2 text-yellow-400">
+//                     <BookOpen size={16} />
+//                     <span className="text-sm">
+//                       {mentor.answeredQuestions} answered
+//                     </span>
+//                   </div>
+
+//                   <Link
+//                     href={`/profile/${mentor.id}`}
+//                     className="flex items-center gap-2 px-4 py-2 bg-yellow-400 hover:bg-yellow-500 text-black font-medium rounded-lg transition-all"
+//                   >
+//                     <MessageCircle size={16} />
+//                     View Profile
+//                   </Link>
+//                 </div>
+//               </div>
+//             ))}
+//           </div>
+//         )}
+//       </section>
+
+//       <BottomNavbar />
+//     </div>
+//   );
+// }
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 "use client";
-import { useEffect, useState } from "react";
+
+import { useEffect, useState, useContext } from "react";
 import Navbar from "@/components/Navbar";
 import BottomNavbar from "@/components/BottomNavbar";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import { BookOpen, MessageCircle } from "lucide-react";
+import { AuthContext } from "@/lib/AuthProvider";
+import { useRouter } from "next/navigation";
 
 const FIXED_CATEGORIES = [
   "All",
@@ -837,41 +1024,59 @@ const FIXED_CATEGORIES = [
 ];
 
 export default function MentorsPage() {
+  const router = useRouter();
+  const { currentUser, loading: authLoading } = useContext(AuthContext);
+
   const [mentors, setMentors] = useState([]);
-  const [categories] = useState(FIXED_CATEGORIES); // ✅ fixed list
   const [activeFilter, setActiveFilter] = useState("All");
   const [loading, setLoading] = useState(true);
 
-  const { currentUser, loading: authLoading } = useContext(AuthContext);
-
+  /* 🔐 SINGLE AUTH REDIRECT (ONLY HERE) */
   useEffect(() => {
-    const fetchMentors = async () => {
-      setLoading(true);
+    if (!authLoading && !currentUser) {
+      router.replace("/login");
+    }
+  }, [authLoading, currentUser, router]);
 
-      const { data: usersData } = await supabase
+  /* 📥 FETCH MENTORS */
+  useEffect(() => {
+    let mounted = true;
+    setLoading(true);
+
+    const fetchMentors = async () => {
+      const { data: usersData, error } = await supabase
         .from("users")
         .select("id,name,branch,bio,categories,profile_image,is_mentor")
         .eq("is_mentor", true);
 
-      if (!usersData) return;
+      if (error || !usersData) {
+        console.error("❌ Mentor fetch error:", error);
+        if (mounted) setLoading(false);
+        return;
+      }
 
       const withAnswersCount = await Promise.all(
         usersData.map(async (m) => {
           const { count } = await supabase
             .from("answers")
             .select("question_id", { count: "exact", head: true })
-            .eq("author_id", m.id)
-            .then((res) => ({ count: res.count || 0 }));
+            .eq("author_id", m.id);
 
-          return { ...m, answeredQuestions: count };
+          return { ...m, answeredQuestions: count || 0 };
         })
       );
 
-      setMentors(withAnswersCount);
-      setLoading(false);
+      if (mounted) {
+        setMentors(withAnswersCount);
+        setLoading(false);
+      }
     };
 
     fetchMentors();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const filteredMentors =
@@ -879,15 +1084,22 @@ export default function MentorsPage() {
       ? mentors
       : mentors.filter((m) => m.categories?.includes(activeFilter));
 
-
-      useEffect(() => {
-  if (!authLoading && !currentUser) {
-    router.replace("/login");
+  /* 🧠 NON-BLOCKING AUTH LOADER */
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-purple-900 via-black to-black text-white">
+        <Navbar />
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p>Loading mentors…</p>
+          </div>
+        </div>
+        <BottomNavbar />
+      </div>
+    );
   }
-}, [authLoading, currentUser, router]);
 
-
-if (authLoading) {
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-900 via-black to-black text-white">
       <Navbar />
@@ -899,8 +1111,9 @@ if (authLoading) {
         </p>
       </section>
 
-      <section className="max-w-7xl mx-auto px-4 pb-6 overflow-x-auto scrollbar-hide flex gap-3">
-        {categories.map((cat) => (
+      {/* FILTERS */}
+      <section className="max-w-7xl mx-auto px-4 pb-6 overflow-x-auto flex gap-3">
+        {FIXED_CATEGORIES.map((cat) => (
           <button
             key={cat}
             onClick={() => setActiveFilter(cat)}
@@ -915,6 +1128,7 @@ if (authLoading) {
         ))}
       </section>
 
+      {/* MENTORS */}
       <section className="max-w-7xl mx-auto px-4 pb-24">
         {loading ? (
           <p className="text-center text-gray-400">Loading mentors...</p>
@@ -925,32 +1139,27 @@ if (authLoading) {
             {filteredMentors.map((mentor) => (
               <div
                 key={mentor.id}
-                className="bg-white/5 border border-white/10 rounded-2xl shadow-2xl backdrop-blur-md p-6 hover:bg-white/10 transition-all duration-200"
+                className="bg-white/5 border border-white/10 rounded-2xl shadow-2xl p-6 hover:bg-white/10 transition"
               >
                 <div className="flex items-center gap-4 mb-4">
                   <img
-                    src={
-                      mentor.profile_image ||
-                      "https://via.placeholder.com/80?text=User"
-                    }
+                    src={mentor.profile_image || "https://via.placeholder.com/80"}
                     alt={mentor.name}
                     className="w-14 h-14 rounded-full border-2 border-yellow-400/40 object-cover"
                   />
                   <div>
-                    <h3 className="font-semibold text-lg text-white">
-                      {mentor.name}
-                    </h3>
+                    <h3 className="font-semibold text-lg">{mentor.name}</h3>
                     <p className="text-sm text-gray-400">
                       {mentor.branch || "Branch not set"}
                     </p>
                   </div>
                 </div>
 
-                <p className="text-gray-300 text-sm leading-relaxed mb-4">
+                <p className="text-gray-300 text-sm mb-4">
                   {mentor.bio || "No bio provided"}
                 </p>
 
-                <div className="flex items-center justify-between mt-4">
+                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-yellow-400">
                     <BookOpen size={16} />
                     <span className="text-sm">
@@ -960,7 +1169,7 @@ if (authLoading) {
 
                   <Link
                     href={`/profile/${mentor.id}`}
-                    className="flex items-center gap-2 px-4 py-2 bg-yellow-400 hover:bg-yellow-500 text-black font-medium rounded-lg transition-all"
+                    className="flex items-center gap-2 px-4 py-2 bg-yellow-400 hover:bg-yellow-500 text-black font-medium rounded-lg"
                   >
                     <MessageCircle size={16} />
                     View Profile
@@ -975,5 +1184,4 @@ if (authLoading) {
       <BottomNavbar />
     </div>
   );
-}
 }
