@@ -2467,6 +2467,28 @@
 
 
 
+// import { Suspense } from "react";
+// import AskQueClient from "./AskQueClient";
+
+// export default function AskQuePage() {
+//   return (
+//     <Suspense fallback={<AskQueSkeleton />}>
+//       <AskQueClient />
+//     </Suspense>
+//   );
+// }
+
+// function AskQueSkeleton() {
+//   return (
+//     <div className="min-h-screen bg-gradient-to-b from-purple-900 via-black to-black flex items-center justify-center text-white">
+//       Preparing page…
+//     </div>
+//   );
+// }
+
+
+
+
 import { Suspense } from "react";
 import AskQueClient from "./AskQueClient";
 
