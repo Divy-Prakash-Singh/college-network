@@ -4250,10 +4250,10 @@ export default function HomePage() {
       <Navbar />
       
        <div className="w-screen mx-auto flex gap-6 mt-6 px-4 pb-20">
-         {/* LEFT SIDEBAR */}
+         {/* LEFT SIDEBAR — Societies */}
          <aside className="hidden lg:block w-1/4">
            <div className="sticky top-20 space-y-4">
-             <button
+            <button
               onClick={() => router.push("/society/create")}
               className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-semibold p-3 rounded-lg transition"
             >
@@ -4299,10 +4299,11 @@ export default function HomePage() {
                       </div>
                       <button
                         onClick={() => router.push(`/society/${s.id}`)}
-                        className="px-3 py-1 text-xs rounded-full border hover:bg-white/10 transition"
+                        className="px-3 py-1 text-xs rounded-full border"
                         style={{
-                          background: "rgba(255,255,255,0.05)",
+                          background: "rgba(255,255,255,0.1)",
                           borderColor: "rgba(255,255,255,0.15)",
+                          color: "rgba(255,255,255,0.85)",
                         }}
                       >
                         Visit
@@ -4315,7 +4316,7 @@ export default function HomePage() {
           </div>
         </aside>
 
-        {/* MAIN FEED */}
+        {/* MAIN FEED — Questions */}
         <main className="flex-1 mx-auto">
           <div
             className="rounded-xl shadow-lg border p-4 md:p-5"
@@ -4347,7 +4348,7 @@ export default function HomePage() {
                     title={q.title}
                     image={q.image}
                     user={q.users}
-                    onOpenModal={() => {}}
+                    onOpenModal={() => openModal(q)}
                   />
                 ))}
               </div>
@@ -4368,13 +4369,206 @@ export default function HomePage() {
               <h2 className="text-lg font-semibold text-yellow-400">
                 About Mentor QnA
               </h2>
+
               <p className="text-sm text-white/80 mt-2 leading-relaxed">
-                Connect with experienced mentors across domains.
+                Mentor QnA is a student-driven platform where juniors can
+                connect with experienced seniors and mentors across branches,
+                domains, and career paths.
               </p>
+
+              <ul className="mt-3 space-y-2 text-sm text-white/70">
+                <li>• Ask doubts without hesitation</li>
+                <li>• Get guidance from verified mentors</li>
+                <li>• Explore GATE, UPSC, Tech, Startups & more</li>
+              </ul>
+
+              <div className="mt-4 pt-3 border-t border-white/10">
+                <p className="text-xs text-white/60">
+                  Built with by <span className="text-sm font-semibold text-white">
+                  Divy 
+                </span>
+                </p>
+                <p className="text-xs text-white/50">
+                  Solving a real problem faced by students
+                </p>
+              </div>
             </div>
           </div>
         </aside>
       </div>
+
+      {/* ANSWER MODAL */}
+      {isModalOpen && (
+        <div
+          onClick={(e) => e.target === e.currentTarget && closeModal()}
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(6px)" }}
+        >
+          <div
+            className="w-full max-w-xl rounded-xl border shadow-lg p-6 mx-4 max-h-[90vh] overflow-y-auto"
+            style={{
+              background: "rgba(17,24,39,0.95)",
+              borderColor: "rgba(255,255,255,0.12)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={closeModal}
+              className="text-white/70 hover:text-white mb-4 float-right text-2xl"
+              aria-label="Close"
+            >
+              ✕
+            </button>
+
+            <h2 className="text-xl font-bold text-[#FDE68A] mb-2">
+              {selectedQuestion?.title}
+            </h2>
+            <p className="text-white/90 mb-2">{selectedQuestion?.question}</p>
+            <p className="text-white/70 text-sm mb-4">
+              {selectedQuestion?.category}
+            </p>
+
+            {/* Answer Input - Only show if mentor */}
+            {!checkingMentor && isMentor && (
+              <div className="mb-6 p-4 rounded-lg border" style={{ background: "rgba(255,255,255,0.05)", borderColor: "rgba(255,255,255,0.1)" }}>
+                <h3 className="text-sm font-semibold mb-2 text-yellow-400">Post Your Answer</h3>
+                <textarea
+                  value={answerText}
+                  onChange={(e) => setAnswerText(e.target.value)}
+                  placeholder="Write your answer here..."
+                  className="w-full rounded-md px-3 py-2 outline-none bg-white/5 border border-white/20 text-white min-h-[100px]"
+                />
+                <button
+                  onClick={postAnswer}
+                  className="mt-2 px-4 py-2 rounded-md font-medium bg-yellow-400 text-black hover:bg-yellow-500 transition"
+                >
+                  Post Answer
+                </button>
+              </div>
+            )}
+
+            {/* Non-mentor message */}
+            {!checkingMentor && !isMentor && (
+              <div className="mb-6 p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+                <p className="text-yellow-200 text-sm">
+                  Only mentors can answer questions.
+                </p>
+              </div>
+            )}
+
+            {modalLoading ? (
+              <p className="text-white/70">Loading answers…</p>
+            ) : modalAnswers.length === 0 ? (
+              <p className="text-white/75 italic">No answers yet.</p>
+            ) : (
+              <div className="space-y-4">
+                {modalAnswers.map((a) => (
+                  <div
+                    key={a.id}
+                    className="rounded-lg p-4 border"
+                    style={{
+                      background: "rgba(255,255,255,0.06)",
+                      borderColor: "rgba(255,255,255,0.12)",
+                    }}
+                  >
+                    <div className="flex items-center gap-3">
+                      {a.users?.profile_image ? (
+                        <img
+                          src={a.users.profile_image}
+                          alt={a.users?.name || "User"}
+                          className="w-9 h-9 rounded-full border border-white/20 object-cover"
+                        />
+                      ) : (
+                        <div className="w-9 h-9 rounded-full border flex items-center justify-center text-sm font-bold bg-white/10 border-white/20">
+                          {(a.users?.name?.[0] || "?").toUpperCase()}
+                        </div>
+                      )}
+
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-white/90">
+                          {a.users?.name || "Unknown User"}
+                        </div>
+                        <div className="text-white/60 text-xs">
+                          {timeAgo(a.created_at)} • {absoluteDate(a.created_at)}
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => likeAnswer(a.id)}
+                        className="text-sm px-3 py-1 rounded-md border bg-white/10 hover:bg-white/20"
+                      >
+                        👍 {a.like_count || 0}
+                      </button>
+                    </div>
+
+                    <p className="mt-3 text-white/90">{a.content}</p>
+
+                    {/* Comments */}
+                    <div className="mt-3">
+                      <button
+                        onClick={() => toggleComments(a.id)}
+                        className="text-xs px-2 py-1 rounded-md border bg-white/10 hover:bg-white/20"
+                      >
+                        {openComments[a.id] ? "Hide Comments" : "View Comments"}
+                      </button>
+                    </div>
+
+                    {openComments[a.id] && (
+                      <div className="mt-3 space-y-3">
+                        {(comments[a.id] || []).map((c) => (
+                          <div
+                            key={c.id}
+                            className="rounded-md p-3 border bg-white/5 border-white/10"
+                          >
+                            <div className="flex items-center gap-2 mb-1">
+                              <div className="w-7 h-7 rounded-full border flex items-center justify-center text-xs bg-white/10 border-white/20">
+                                {(c.users?.name?.[0] || "?").toUpperCase()}
+                              </div>
+                              <div className="text-xs">
+                                <div className="font-medium text-white/90">
+                                  {c.users?.name || "Unknown"}
+                                </div>
+                                <div className="text-white/60">
+                                  {timeAgo(c.created_at)}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-sm text-white/90">
+                              {c.content}
+                            </div>
+                          </div>
+                        ))}
+
+                        <div className="flex gap-2">
+                          <input
+                            value={commentInputs[a.id] || ""}
+                            onChange={(e) =>
+                              setCommentInputs((prev) => ({
+                                ...prev,
+                                [a.id]: e.target.value,
+                              }))
+                            }
+                            onKeyPress={(e) => e.key === 'Enter' && addComment(a.id)}
+                            placeholder="Write a comment…"
+                            className="flex-1 rounded-md px-3 py-2 outline-none bg-white/5 border border-white/20 text-white"
+                          />
+                          <button
+                            onClick={() => addComment(a.id)}
+                            className="px-3 py-2 rounded-md font-medium bg-yellow-400 text-black"
+                          >
+                            Add
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
 
       <BottomNavbar />
     </div>
