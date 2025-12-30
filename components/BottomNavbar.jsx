@@ -97,10 +97,10 @@ export default function BottomNavbar() {
         <span className="text-xs">Ask</span>
       </Link>
 
-      <Link href="/message" className="flex flex-col items-center hover:text-white">
+      {/* <Link href="/message" className="flex flex-col items-center hover:text-white">
         <MessageSquare size={20} />
         <span className="text-xs">Chat</span>
-      </Link>
+      </Link> */}
 
       {/* PROFILE */}
       <Link href={profileHref} className="flex flex-col items-center">
