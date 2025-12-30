@@ -4248,7 +4248,132 @@ export default function HomePage() {
       style={{ background: "linear-gradient(to bottom, #4C1D95, #000000 60%)" }}
     >
       <Navbar />
-      {/* keep rest of your JSX exactly the same */}
+        <div className="w-screen mx-auto flex gap-6 mt-6 px-4 pb-20">
+      {/* LEFT SIDEBAR */}
+              <aside className="hidden lg:block w-1/4">
+          <div className="sticky top-20 space-y-4">
+           <button
+              onClick={() => router.push("/society/create")}
+              className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-semibold p-3 rounded-lg transition"
+            >
+              + Create Society
+            </button>
+
+            <div
+              className="rounded-xl p-4 shadow-lg border"
+              style={{
+                background: "rgba(255,255,255,0.05)",
+                borderColor: "rgba(255,255,255,0.1)",
+              }}
+            >
+              <h2 className="text-lg font-semibold mb-3">College Societies</h2>
+              <div className="space-y-3 max-h-[70vh] overflow-hidden hover:overflow-y-auto pr-1">
+                {societies.length === 0 ? (
+                  <p className="text-sm text-white/60">No societies yet.</p>
+                ) : (
+                  societies.map((s) => (
+                    <div
+                      key={s.id}
+                      className="flex items-center justify-between pb-2 border-b last:border-b-0"
+                      style={{ borderColor: "rgba(255,255,255,0.1)" }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-10 h-10 rounded-full flex items-center justify-center text-lg border"
+                          style={{
+                            background: "rgba(255,255,255,0.1)",
+                            borderColor: "rgba(255,255,255,0.2)",
+                          }}
+                        >
+                          <span>{getEmoji(s.name)}</span>
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-semibold text-white/90">
+                            {s.name}
+                          </h3>
+                          <p className="text-xs text-white/60 line-clamp-1">
+                            {s.description}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => router.push(`/society/${s.id}`)}
+                        className="px-3 py-1 text-xs rounded-full border hover:bg-white/10 transition"
+                        style={{
+                          background: "rgba(255,255,255,0.05)",
+                          borderColor: "rgba(255,255,255,0.15)",
+                        }}
+                      >
+                        Visit
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        {/* MAIN FEED */}
+        <main className="flex-1 mx-auto">
+          <div
+            className="rounded-xl shadow-lg border p-4 md:p-5"
+            style={{
+              background: "rgba(255,255,255,0.05)",
+              borderColor: "rgba(255,255,255,0.1)",
+            }}
+          >
+            <h2 className="text-xl font-semibold mb-4 text-[#FDE68A]">
+              Latest Questions
+            </h2>
+
+            {loading ? (
+              <p className="text-white/70 text-center py-10">
+                Loading questions…
+              </p>
+            ) : questions.length === 0 ? (
+              <p className="text-white/70 text-center py-10">
+                No questions posted yet.
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {questions.map((q) => (
+                  <QueBox
+                    key={q.id}
+                    id={q.id}
+                    category={q.category}
+                    que={q.question}
+                    title={q.title}
+                    image={q.image}
+                    user={q.users}
+                    onOpenModal={() => {}}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </main>
+
+        {/* RIGHT SIDEBAR */}
+        <aside className="hidden lg:block w-1/4">
+          <div className="sticky top-20">
+            <div
+              className="rounded-xl p-4 shadow-lg border"
+              style={{
+                background: "rgba(255,255,255,0.05)",
+                borderColor: "rgba(255,255,255,0.1)",
+              }}
+            >
+              <h2 className="text-lg font-semibold text-yellow-400">
+                About Mentor QnA
+              </h2>
+              <p className="text-sm text-white/80 mt-2 leading-relaxed">
+                Connect with experienced mentors across domains.
+              </p>
+            </div>
+          </div>
+        </aside>
+      </div>
       <BottomNavbar />
     </div>
   );
