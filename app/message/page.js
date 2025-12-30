@@ -1637,300 +1637,119 @@
 
 
 
-// // app/home/page.js
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// // app/message/page.js
 // "use client";
 
-// import { useEffect, useMemo, useState, useContext } from "react";
+// import React, { useEffect, useMemo, useState, useContext } from "react";
 // import Navbar from "@/components/Navbar";
 // import BottomNavbar from "@/components/BottomNavbar";
-// import QueBox from "@/components/QueBox";
+// import { MessageCircle, Clock, ArrowRight, Star, X } from "lucide-react";
 // import { supabase } from "@/lib/supabaseClient";
-// import { useRouter } from "next/navigation";
 // import { AuthContext } from "@/lib/AuthProvider";
+// import QueBox from "@/components/QueBox";
 
-// const timeAgo = (iso) => {
-//   const d = new Date(iso);
-//   const diff = (Date.now() - d.getTime()) / 1000;
-//   const h = Math.floor(diff / 3600);
-//   const m = Math.floor((diff % 3600) / 60);
-//   if (h > 0) return `${h} hour${h > 1 ? "s" : ""} ago`;
-//   if (m > 0) return `${m} minute${m > 1 ? "s" : ""} ago`;
-//   return "just now";
-// };
-
-// const absoluteDate = (iso) => {
-//   try {
-//     return new Date(iso).toLocaleString();
-//   } catch {
-//     return "";
-//   }
-// };
-
-// const getEmoji = (name = "") => {
-//   const n = name.toLowerCase();
-//   if (n.includes("tech") || n.includes("coding")) return "💻";
-//   if (n.includes("cultural") || n.includes("music") || n.includes("dance")) return "🎭";
-//   if (n.includes("literary") || n.includes("debate") || n.includes("writing")) return "📚";
-//   if (n.includes("drama") || n.includes("film")) return "🎬";
-//   if (n.includes("photo")) return "📷";
-//   if (n.includes("robot")) return "🤖";
-//   if (n.includes("entrepreneur")) return "🚀";
-//   if (n.includes("environment")) return "🌿";
-//   if (n.includes("math")) return "➗";
-//   if (n.includes("astro")) return "🌌";
-//   if (n.includes("ml") || n.includes("ai")) return "🧠";
-//   if (n.includes("fin")) return "💹";
-//   return "🏫";
-// };
-
-// export default function HomePage() {
-//   const router = useRouter();
+// export default function MessagePage() {
 //   const { currentUser, loading: authLoading } = useContext(AuthContext);
 
-//   const [questions, setQuestions] = useState([]);
-//   const [societies, setSocieties] = useState([]);
+//   const [activeFilter, setActiveFilter] = useState("Questions for You");
+//   const [questionsForYou, setQuestionsForYou] = useState([]);
+//   const [allCategoryQuestions, setAllCategoryQuestions] = useState([]);
 //   const [loading, setLoading] = useState(true);
 
-//   const [isMentor, setIsMentor] = useState(false);
-
-//   // ------------------------------
-//   // ✅ Modal state (MISSING BEFORE)
-//   // ------------------------------
 //   const [isModalOpen, setIsModalOpen] = useState(false);
 //   const [selectedQuestion, setSelectedQuestion] = useState(null);
 
-//   const [checkingMentor, setCheckingMentor] = useState(false);
+//   const filteredQuestions = useMemo(() => {
+//     return activeFilter === "Questions for You" ? questionsForYou : allCategoryQuestions;
+//   }, [activeFilter, questionsForYou, allCategoryQuestions]);
 
-//   const [answerText, setAnswerText] = useState("");
-
-//   const [modalLoading, setModalLoading] = useState(false);
-//   const [modalAnswers, setModalAnswers] = useState([]);
-
-//   const [openComments, setOpenComments] = useState({});
-//   const [comments, setComments] = useState({});
-//   const [commentInputs, setCommentInputs] = useState({});
-
-//   // 🔐 Auth redirect (single)
 //   useEffect(() => {
 //     if (authLoading) return;
-//     if (!currentUser) router.replace("/login");
-//   }, [authLoading, currentUser, router]);
 
-//   // Mentor check
-//   useEffect(() => {
-//     if (!currentUser?.id) {
-//       setIsMentor(false);
+//     if (!currentUser) {
+//       setLoading(false);
+//       setQuestionsForYou([]);
+//       setAllCategoryQuestions([]);
 //       return;
 //     }
 
-//     let mounted = true;
+//     const loadQuestions = async () => {
+//       setLoading(true);
 
-//     const checkMentor = async () => {
-//       const { data } = await supabase
-//         .from("users")
-//         .select("is_mentor")
-//         .eq("id", currentUser.id)
-//         .single();
-
-//       if (mounted) setIsMentor(data?.is_mentor || false);
-//     };
-
-//     checkMentor();
-//     return () => {
-//       mounted = false;
-//     };
-//   }, [currentUser]);
-
-//   // Questions
-//   useEffect(() => {
-//     if (!currentUser) return;
-
-//     let mounted = true;
-//     setLoading(true);
-
-//     supabase
-//       .from("questions")
-//       .select(`id,title,question,category,image,created_at,users:author_id(name,profile_image)`)
-//       .order("created_at", { ascending: false })
-//       .then(({ data, error }) => {
-//         if (error) console.error("❌ [HomePage] Questions error:", error);
-//         if (mounted) {
-//           setQuestions(data || []);
-//           setLoading(false);
-//         }
-//       });
-
-//     return () => {
-//       mounted = false;
-//     };
-//   }, [currentUser]);
-
-//   // Societies
-//   useEffect(() => {
-//     if (!currentUser) return;
-
-//     let mounted = true;
-
-//     supabase
-//       .from("societies")
-//       .select("id,name,description,created_at")
-//       .order("created_at", { ascending: false })
-//       .then(({ data, error }) => {
-//         if (error) console.error("❌ [HomePage] Societies error:", error);
-//         if (mounted) setSocieties(data || []);
-//       });
-
-//     return () => {
-//       mounted = false;
-//     };
-//   }, [currentUser]);
-
-//   // ------------------------------
-//   // ✅ Modal helpers (MISSING BEFORE)
-//   // ------------------------------
-//   const loadAnswersForQuestion = async (questionId) => {
-//     setModalLoading(true);
-//     try {
-//       const { data, error } = await supabase
-//         .from("answers")
-//         .select(`id, content, created_at, like_count, users:author_id(name, profile_image)`)
-//         .eq("question_id", questionId)
+//       // 1) Assigned directly to current mentor
+//       const { data: assignedData, error: assignedErr } = await supabase
+//         .from("questions")
+//         .select(`
+//           id, title, question, category, created_at, image, author_id, assigned_to,
+//           users:author_id ( name, profile_image, branch )
+//         `)
+//         .eq("assigned_to", currentUser.id)
 //         .order("created_at", { ascending: false });
 
-//       if (error) {
-//         console.error("❌ [HomePage] Load answers error:", error);
-//         setModalAnswers([]);
-//       } else {
-//         setModalAnswers(data || []);
-//       }
-//     } finally {
-//       setModalLoading(false);
-//     }
-//   };
+//       if (assignedErr) console.error("❌ Error fetching assigned questions:", assignedErr.message);
+//       setQuestionsForYou(assignedData || []);
 
-//   const openModal = async (q) => {
+//       // 2) Category-based questions
+//       const myCats = Array.isArray(currentUser.categories)
+//         ? currentUser.categories.filter(Boolean)
+//         : [];
+
+//       if (myCats.length === 0) {
+//         setAllCategoryQuestions([]);
+//         setLoading(false);
+//         return;
+//       }
+
+//       const { data: catData, error: catErr } = await supabase
+//         .from("questions")
+//         .select(`
+//           id, title, question, category, created_at, image, author_id, assigned_to,
+//           users:author_id ( name, profile_image, branch )
+//         `)
+//         .in("category", myCats)
+//         .order("created_at", { ascending: false });
+
+//       if (catErr) console.error("❌ Error fetching category questions:", catErr.message);
+
+//       const finalCategoryList = (catData || []).filter(
+//         (q) => !q.assigned_to || q.assigned_to !== currentUser.id
+//       );
+
+//       setAllCategoryQuestions(finalCategoryList);
+//       setLoading(false);
+//     };
+
+//     loadQuestions();
+//   }, [authLoading, currentUser]);
+
+//   const openModal = (q) => {
 //     setSelectedQuestion(q);
 //     setIsModalOpen(true);
-//     setAnswerText("");
-//     setOpenComments({});
-//     setComments({});
-//     setCommentInputs({});
-
-//     // load answers
-//     if (q?.id) await loadAnswersForQuestion(q.id);
 //   };
 
 //   const closeModal = () => {
 //     setIsModalOpen(false);
 //     setSelectedQuestion(null);
-//     setAnswerText("");
-//     setModalAnswers([]);
-//     setOpenComments({});
-//     setComments({});
-//     setCommentInputs({});
 //   };
 
-//   const postAnswer = async () => {
-//     if (!currentUser?.id) return;
-//     if (!selectedQuestion?.id) return;
-
-//     const content = answerText.trim();
-//     if (!content) return;
-
-//     try {
-//       const { error } = await supabase.from("answers").insert([
-//         {
-//           question_id: selectedQuestion.id,
-//           author_id: currentUser.id,
-//           content,
-//         },
-//       ]);
-
-//       if (error) throw error;
-
-//       setAnswerText("");
-//       await loadAnswersForQuestion(selectedQuestion.id);
-//     } catch (e) {
-//       console.error("❌ [HomePage] Post answer error:", e);
-//     }
-//   };
-
-//   const likeAnswer = async (answerId) => {
-//     // Minimal: optimistic bump locally, and try DB increment if you have such RPC/column logic.
-//     setModalAnswers((prev) =>
-//       prev.map((a) => (a.id === answerId ? { ...a, like_count: (a.like_count || 0) + 1 } : a))
-//     );
-
-//     // If you have an RPC or trigger, replace this with your real implementation.
-//     try {
-//       // Example: update like_count directly (requires RLS permission)
-//       await supabase
-//         .from("answers")
-//         .update({ like_count: supabase.raw ? supabase.raw("like_count + 1") : undefined })
-//         .eq("id", answerId);
-//     } catch {
-//       // ignore if not supported
-//     }
-//   };
-
-//   const toggleComments = async (answerId) => {
-//     setOpenComments((prev) => ({ ...prev, [answerId]: !prev[answerId] }));
-
-//     // If opening and comments not loaded yet, fetch them
-//     const willOpen = !openComments[answerId];
-//     if (!willOpen) return;
-
-//     try {
-//       const { data, error } = await supabase
-//         .from("comments")
-//         .select(`id, content, created_at, users:author_id(name, profile_image)`)
-//         .eq("answer_id", answerId)
-//         .order("created_at", { ascending: true });
-
-//       if (error) {
-//         console.error("❌ [HomePage] Load comments error:", error);
-//         setComments((prev) => ({ ...prev, [answerId]: [] }));
-//       } else {
-//         setComments((prev) => ({ ...prev, [answerId]: data || [] }));
-//       }
-//     } catch (e) {
-//       console.error("❌ [HomePage] Load comments failed:", e);
-//     }
-//   };
-
-//   const addComment = async (answerId) => {
-//     if (!currentUser?.id) return;
-//     const text = (commentInputs[answerId] || "").trim();
-//     if (!text) return;
-
-//     try {
-//       const { error } = await supabase.from("comments").insert([
-//         {
-//           answer_id: answerId,
-//           author_id: currentUser.id,
-//           content: text,
-//         },
-//       ]);
-//       if (error) throw error;
-
-//       setCommentInputs((prev) => ({ ...prev, [answerId]: "" }));
-
-//       // reload comments
-//       const { data } = await supabase
-//         .from("comments")
-//         .select(`id, content, created_at, users:author_id(name, profile_image)`)
-//         .eq("answer_id", answerId)
-//         .order("created_at", { ascending: true });
-
-//       setComments((prev) => ({ ...prev, [answerId]: data || [] }));
-//     } catch (e) {
-//       console.error("❌ [HomePage] Add comment error:", e);
-//     }
-//   };
-
+//   // ✅ Correct loading UI (original code was inverted)
 //   if (authLoading) {
 //     return (
-//       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-purple-900 via-black to-black">
+//       <div className="min-h-screen bg-gradient-to-b from-purple-900 via-black to-black flex items-center justify-center text-white">
 //         <div className="text-white text-center">
 //           <div className="w-12 h-12 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
 //           <p>Loading...</p>
@@ -1939,338 +1758,192 @@
 //     );
 //   }
 
-//   if (!currentUser) return null;
-
 //   return (
-//     <div
-//       className="min-h-screen text-white"
-//       style={{ background: "linear-gradient(to bottom, #4C1D95, #000000 60%)" }}
-//     >
+//     <div className="min-h-screen bg-gradient-to-b from-purple-900 via-black to-black text-white relative">
 //       <Navbar />
 
-//       <div className="w-screen mx-auto flex gap-6 mt-6 px-4 pb-20">
-//         {/* LEFT SIDEBAR — Societies */}
-//         <aside className="hidden lg:block w-1/4">
-//           <div className="sticky top-20 space-y-4">
+//       {/* Header */}
+//       <section className="max-w-7xl mx-auto px-4 pt-10 pb-6">
+//         <div className="flex items-center gap-3 mb-4">
+//           <div className="w-10 h-10 bg-gradient-to-br from-yellow-400 to-amber-500 rounded-full flex items-center justify-center text-black font-extrabold shadow-lg">
+//             <MessageCircle size={20} />
+//           </div>
+//           <span className="text-white/70">Messages</span>
+//         </div>
+//         <h1 className="text-2xl md:text-3xl font-semibold">Answer Questions</h1>
+//         <p className="text-white/70 text-sm mt-1">
+//           {!currentUser
+//             ? "Log in to see questions in your categories."
+//             : "Help juniors by sharing your knowledge."}
+//         </p>
+//       </section>
+
+//       {/* Filter Buttons */}
+//       <section className="max-w-7xl mx-auto px-4 pb-6">
+//         <div className="flex gap-3">
+//           {["Questions for You", "All Questions"].map((filter) => (
 //             <button
-//               onClick={() => router.push("/society/create")}
-//               className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-semibold p-3 rounded-lg transition"
+//               key={filter}
+//               onClick={() => setActiveFilter(filter)}
+//               className={`px-6 py-3 rounded-lg text-sm font-medium transition-all ${
+//                 activeFilter === filter
+//                   ? "bg-yellow-400 text-black shadow-lg"
+//                   : "bg-white/10 border border-white/15 text-white/80 hover:bg-white/20"
+//               }`}
 //             >
-//               + Create Society
+//               {filter}
 //             </button>
+//           ))}
+//         </div>
+//       </section>
 
-//             <div
-//               className="rounded-xl p-4 shadow-lg border"
-//               style={{
-//                 background: "rgba(255,255,255,0.05)",
-//                 borderColor: "rgba(255,255,255,0.1)",
-//               }}
-//             >
-//               <h2 className="text-lg font-semibold mb-3">College Societies</h2>
-//               <div className="space-y-3 max-h-[70vh] overflow-hidden hover:overflow-y-auto pr-1">
-//                 {societies.length === 0 ? (
-//                   <p className="text-sm text-white/60">No societies yet.</p>
-//                 ) : (
-//                   societies.map((s) => (
-//                     <div
-//                       key={s.id}
-//                       className="flex items-center justify-between pb-2 border-b last:border-b-0"
-//                       style={{ borderColor: "rgba(255,255,255,0.1)" }}
-//                     >
-//                       <div className="flex items-center gap-3">
-//                         <div
-//                           className="w-10 h-10 rounded-full flex items-center justify-center text-lg border"
-//                           style={{
-//                             background: "rgba(255,255,255,0.1)",
-//                             borderColor: "rgba(255,255,255,0.2)",
-//                           }}
-//                         >
-//                           <span>{getEmoji(s.name)}</span>
-//                         </div>
-//                         <div>
-//                           <h3 className="text-sm font-semibold text-white/90">
-//                             {s.name}
-//                           </h3>
-//                           <p className="text-xs text-white/60 line-clamp-1">
-//                             {s.description}
-//                           </p>
-//                         </div>
-//                       </div>
-//                       <button
-//                         onClick={() => router.push(`/society/${s.id}`)}
-//                         className="px-3 py-1 text-xs rounded-full border"
-//                         style={{
-//                           background: "rgba(255,255,255,0.1)",
-//                           borderColor: "rgba(255,255,255,0.15)",
-//                           color: "rgba(255,255,255,0.85)",
-//                         }}
-//                       >
-//                         Visit
-//                       </button>
+//       {/* Questions Display */}
+//       <section className="max-w-7xl mx-auto px-4 pb-24">
+//         {loading ? (
+//           <p className="text-gray-400 text-center py-10">Loading questions...</p>
+//         ) : !currentUser ? (
+//           <div className="text-center py-12">
+//             <MessageCircle size={48} className="text-white/40 mx-auto mb-4" />
+//             <h3 className="text-lg font-medium text-white/60 mb-2">
+//               You’re not logged in
+//             </h3>
+//             <p className="text-sm text-white/40">
+//               Please sign in to see questions in your categories.
+//             </p>
+//           </div>
+//         ) : filteredQuestions.length === 0 ? (
+//           <div className="text-center py-12">
+//             <MessageCircle size={48} className="text-white/40 mx-auto mb-4" />
+//             <h3 className="text-lg font-medium text-white/60 mb-2">
+//               No questions found
+//             </h3>
+//             <p className="text-sm text-white/40">
+//               Try changing your filter or check back later.
+//             </p>
+//           </div>
+//         ) : (
+//           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+//             {filteredQuestions.map((q) => (
+//               <div
+//                 key={q.id}
+//                 className="bg-white/5 border border-white/10 rounded-2xl shadow-2xl backdrop-blur-md p-6 hover:bg-white/10 transition-all cursor-pointer group"
+//                 onClick={() => openModal(q)}
+//               >
+//                 {/* Header */}
+//                 <div className="flex items-start justify-between mb-4">
+//                   <div className="flex items-center gap-3">
+//                     <img
+//                       src={q.users?.profile_image || "https://via.placeholder.com/48?text=U"}
+//                       alt={q.users?.name || "Author"}
+//                       className="w-12 h-12 rounded-full border border-white/20 object-cover"
+//                     />
+//                     <div>
+//                       <h3 className="font-semibold text-white/90 group-hover:text-yellow-400 transition">
+//                         {q.users?.name || "Anonymous"}
+//                       </h3>
+//                       <p className="text-xs text-white/60">
+//                         {q.users?.branch || "Department"}
+//                       </p>
 //                     </div>
-//                   ))
-//                 )}
-//               </div>
-//             </div>
-//           </div>
-//         </aside>
+//                   </div>
+//                   <div className="text-xs bg-yellow-400/20 text-yellow-400 px-3 py-1 rounded-full border border-yellow-400/30 font-medium">
+//                     {q.category || "General"}
+//                   </div>
+//                 </div>
 
-//         {/* MAIN FEED — Questions */}
-//         <main className="flex-1 mx-auto">
-//           <div
-//             className="rounded-xl shadow-lg border p-4 md:p-5"
-//             style={{
-//               background: "rgba(255,255,255,0.05)",
-//               borderColor: "rgba(255,255,255,0.1)",
-//             }}
-//           >
-//             <h2 className="text-xl font-semibold mb-4 text-[#FDE68A]">
-//               Latest Questions
-//             </h2>
+//                 {/* Title and Question */}
+//                 <h4 className="font-semibold text-white/90 mb-1 group-hover:text-yellow-400 line-clamp-2">
+//                   {q.title}
+//                 </h4>
+//                 <p className="text-sm text-white/70 mb-4 leading-relaxed line-clamp-3">
+//                   {q.question}
+//                 </p>
 
-//             {loading ? (
-//               <p className="text-white/70 text-center py-10">
-//                 Loading questions…
-//               </p>
-//             ) : questions.length === 0 ? (
-//               <p className="text-white/70 text-center py-10">
-//                 No questions posted yet.
-//               </p>
-//             ) : (
-//               <div className="space-y-4">
-//                 {questions.map((q) => (
-//                   <QueBox
-//                     key={q.id}
-//                     id={q.id}
-//                     category={q.category}
-//                     que={q.question}
-//                     title={q.title}
-//                     image={q.image}
-//                     user={q.users}
-//                     onOpenModal={() => openModal(q)}
+//                 {/* Optional image preview */}
+//                 {q.image && (
+//                   <img
+//                     src={q.image}
+//                     alt="Question image"
+//                     className="rounded-md mb-3 border border-white/10 max-h-48 object-cover"
 //                   />
-//                 ))}
+//                 )}
+
+//                 {/* Footer */}
+//                 <div className="flex items-center justify-between text-xs text-white/60 mb-2">
+//                   <div className="flex items-center gap-2">
+//                     <Star size={14} className="text-yellow-400" />
+//                     <span>Answers</span>
+//                   </div>
+//                   <div className="flex items-center gap-1">
+//                     <Clock size={12} />
+//                     <span>
+//                       {q.created_at ? new Date(q.created_at).toLocaleString() : "Just now"}
+//                     </span>
+//                   </div>
+//                 </div>
+
+//                 <div className="flex items-center justify-between">
+//                   <span className="text-xs text-white/60">Click to view & answer</span>
+//                   <ArrowRight
+//                     size={16}
+//                     className="text-white/60 group-hover:text-yellow-400 transition-colors"
+//                   />
+//                 </div>
 //               </div>
-//             )}
+//             ))}
 //           </div>
-//         </main>
+//         )}
+//       </section>
 
-//         {/* RIGHT SIDEBAR */}
-//         <aside className="hidden lg:block w-1/4">
-//           <div className="sticky top-20">
-//             <div
-//               className="rounded-xl p-4 shadow-lg border"
-//               style={{
-//                 background: "rgba(255,255,255,0.05)",
-//                 borderColor: "rgba(255,255,255,0.1)",
-//               }}
-//             >
-//               <h2 className="text-lg font-semibold text-yellow-400">
-//                 About Mentor QnA
-//               </h2>
-
-//               <p className="text-sm text-white/80 mt-2 leading-relaxed">
-//                 Mentor QnA is a student-driven platform where juniors can
-//                 connect with experienced seniors and mentors across branches,
-//                 domains, and career paths.
-//               </p>
-
-//               <ul className="mt-3 space-y-2 text-sm text-white/70">
-//                 <li>• Ask doubts without hesitation</li>
-//                 <li>• Get guidance from verified mentors</li>
-//                 <li>• Explore GATE, UPSC, Tech, Startups & more</li>
-//               </ul>
-
-//               <div className="mt-4 pt-3 border-t border-white/10">
-//                 <p className="text-xs text-white/60">
-//                   Built with by{" "}
-//                   <span className="text-sm font-semibold text-white">Divy</span>
-//                 </p>
-//                 <p className="text-xs text-white/50">
-//                   Solving a real problem faced by students
-//                 </p>
-//               </div>
-//             </div>
-//           </div>
-//         </aside>
-//       </div>
-
-//       {/* ANSWER MODAL */}
-//       {isModalOpen && (
-//         <div
-//           onClick={(e) => e.target === e.currentTarget && closeModal()}
-//           className="fixed inset-0 z-50 flex items-center justify-center"
-//           style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(6px)" }}
-//         >
-//           <div
-//             className="w-full max-w-xl rounded-xl border shadow-lg p-6 mx-4 max-h-[90vh] overflow-y-auto"
-//             style={{
-//               background: "rgba(17,24,39,0.95)",
-//               borderColor: "rgba(255,255,255,0.12)",
-//             }}
-//             onClick={(e) => e.stopPropagation()}
-//           >
+//       {/* Modal (Full Q&A) */}
+//       {isModalOpen && selectedQuestion && (
+//         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+//           <div className="bg-gray-900 w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-xl p-6 border border-white/10 relative">
 //             <button
 //               onClick={closeModal}
-//               className="text-white/70 hover:text-white mb-4 float-right text-2xl"
+//               className="absolute top-3 right-3 text-gray-400 hover:text-white"
 //               aria-label="Close"
 //             >
-//               ✕
+//               <X size={20} />
 //             </button>
 
-//             <h2 className="text-xl font-bold text-[#FDE68A] mb-2">
-//               {selectedQuestion?.title}
-//             </h2>
-//             <p className="text-white/90 mb-2">{selectedQuestion?.question}</p>
-//             <p className="text-white/70 text-sm mb-4">
-//               {selectedQuestion?.category}
-//             </p>
-
-//             {/* Answer Input - Only show if mentor */}
-//             {!checkingMentor && isMentor && (
-//               <div
-//                 className="mb-6 p-4 rounded-lg border"
-//                 style={{
-//                   background: "rgba(255,255,255,0.05)",
-//                   borderColor: "rgba(255,255,255,0.1)",
-//                 }}
-//               >
-//                 <h3 className="text-sm font-semibold mb-2 text-yellow-400">
-//                   Post Your Answer
+//             <div className="flex items-center gap-3 mb-4">
+//               <img
+//                 src={selectedQuestion.users?.profile_image || "https://via.placeholder.com/48?text=U"}
+//                 alt={selectedQuestion.users?.name || "Author"}
+//                 className="w-12 h-12 rounded-full border border-white/20 object-cover"
+//               />
+//               <div>
+//                 <h3 className="font-semibold text-white">
+//                   {selectedQuestion.users?.name || "Anonymous"}
 //                 </h3>
-//                 <textarea
-//                   value={answerText}
-//                   onChange={(e) => setAnswerText(e.target.value)}
-//                   placeholder="Write your answer here..."
-//                   className="w-full rounded-md px-3 py-2 outline-none bg-white/5 border border-white/20 text-white min-h-[100px]"
-//                 />
-//                 <button
-//                   onClick={postAnswer}
-//                   className="mt-2 px-4 py-2 rounded-md font-medium bg-yellow-400 text-black hover:bg-yellow-500 transition"
-//                 >
-//                   Post Answer
-//                 </button>
-//               </div>
-//             )}
-
-//             {/* Non-mentor message */}
-//             {!checkingMentor && !isMentor && (
-//               <div className="mb-6 p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
-//                 <p className="text-yellow-200 text-sm">
-//                   Only mentors can answer questions.
+//                 <p className="text-xs text-white/60">
+//                   {selectedQuestion.users?.branch || "Department"}
 //                 </p>
 //               </div>
+//               <span className="ml-auto text-xs bg-yellow-400/20 text-yellow-400 px-3 py-1 rounded-full border border-yellow-400/30 font-medium">
+//                 {selectedQuestion.category || "General"}
+//               </span>
+//             </div>
+
+//             <h2 className="text-xl text-yellow-400 font-bold">{selectedQuestion.title}</h2>
+//             <p className="text-sm text-white/80 mt-2">{selectedQuestion.question}</p>
+
+//             {selectedQuestion.image && (
+//               <img
+//                 src={selectedQuestion.image}
+//                 alt="Question attachment"
+//                 className="mt-4 rounded-lg border border-white/10"
+//               />
 //             )}
 
-//             {modalLoading ? (
-//               <p className="text-white/70">Loading answers…</p>
-//             ) : modalAnswers.length === 0 ? (
-//               <p className="text-white/75 italic">No answers yet.</p>
-//             ) : (
-//               <div className="space-y-4">
-//                 {modalAnswers.map((a) => (
-//                   <div
-//                     key={a.id}
-//                     className="rounded-lg p-4 border"
-//                     style={{
-//                       background: "rgba(255,255,255,0.06)",
-//                       borderColor: "rgba(255,255,255,0.12)",
-//                     }}
-//                   >
-//                     <div className="flex items-center gap-3">
-//                       {a.users?.profile_image ? (
-//                         <img
-//                           src={a.users.profile_image}
-//                           alt={a.users?.name || "User"}
-//                           className="w-9 h-9 rounded-full border border-white/20 object-cover"
-//                         />
-//                       ) : (
-//                         <div className="w-9 h-9 rounded-full border flex items-center justify-center text-sm font-bold bg-white/10 border-white/20">
-//                           {(a.users?.name?.[0] || "?").toUpperCase()}
-//                         </div>
-//                       )}
-
-//                       <div className="flex-1">
-//                         <div className="text-sm font-medium text-white/90">
-//                           {a.users?.name || "Unknown User"}
-//                         </div>
-//                         <div className="text-white/60 text-xs">
-//                           {timeAgo(a.created_at)} • {absoluteDate(a.created_at)}
-//                         </div>
-//                       </div>
-
-//                       <button
-//                         onClick={() => likeAnswer(a.id)}
-//                         className="text-sm px-3 py-1 rounded-md border bg-white/10 hover:bg-white/20"
-//                       >
-//                         👍 {a.like_count || 0}
-//                       </button>
-//                     </div>
-
-//                     <p className="mt-3 text-white/90">{a.content}</p>
-
-//                     {/* Comments */}
-//                     <div className="mt-3">
-//                       <button
-//                         onClick={() => toggleComments(a.id)}
-//                         className="text-xs px-2 py-1 rounded-md border bg-white/10 hover:bg-white/20"
-//                       >
-//                         {openComments[a.id] ? "Hide Comments" : "View Comments"}
-//                       </button>
-//                     </div>
-
-//                     {openComments[a.id] && (
-//                       <div className="mt-3 space-y-3">
-//                         {(comments[a.id] || []).map((c) => (
-//                           <div
-//                             key={c.id}
-//                             className="rounded-md p-3 border bg-white/5 border-white/10"
-//                           >
-//                             <div className="flex items-center gap-2 mb-1">
-//                               <div className="w-7 h-7 rounded-full border flex items-center justify-center text-xs bg-white/10 border-white/20">
-//                                 {(c.users?.name?.[0] || "?").toUpperCase()}
-//                               </div>
-//                               <div className="text-xs">
-//                                 <div className="font-medium text-white/90">
-//                                   {c.users?.name || "Unknown"}
-//                                 </div>
-//                                 <div className="text-white/60">
-//                                   {timeAgo(c.created_at)}
-//                                 </div>
-//                               </div>
-//                             </div>
-//                             <div className="text-sm text-white/90">
-//                               {c.content}
-//                             </div>
-//                           </div>
-//                         ))}
-
-//                         <div className="flex gap-2">
-//                           <input
-//                             value={commentInputs[a.id] || ""}
-//                             onChange={(e) =>
-//                               setCommentInputs((prev) => ({
-//                                 ...prev,
-//                                 [a.id]: e.target.value,
-//                               }))
-//                             }
-//                             onKeyDown={(e) => e.key === "Enter" && addComment(a.id)}
-//                             placeholder="Write a comment…"
-//                             className="flex-1 rounded-md px-3 py-2 outline-none bg-white/5 border border-white/20 text-white"
-//                           />
-//                           <button
-//                             onClick={() => addComment(a.id)}
-//                             className="px-3 py-2 rounded-md font-medium bg-yellow-400 text-black"
-//                           >
-//                             Add
-//                           </button>
-//                         </div>
-//                       </div>
-//                     )}
-//                   </div>
-//                 ))}
-//               </div>
-//             )}
+//             <div className="mt-6">
+//               <QueBox
+//                 id={selectedQuestion.id}
+//                 category={selectedQuestion.category}
+//                 que={selectedQuestion.question}
+//               />
+//             </div>
 //           </div>
 //         </div>
 //       )}
@@ -2294,307 +1967,223 @@
 
 
 
-// app/message/page.js
-"use client";
 
-import React, { useEffect, useMemo, useState, useContext } from "react";
-import Navbar from "@/components/Navbar";
-import BottomNavbar from "@/components/BottomNavbar";
-import { MessageCircle, Clock, ArrowRight, Star, X } from "lucide-react";
-import { supabase } from "@/lib/supabaseClient";
-import { AuthContext } from "@/lib/AuthProvider";
-import QueBox from "@/components/QueBox";
+// // app/message/page.js
+// "use client";
 
-export default function MessagePage() {
-  const { currentUser, loading: authLoading } = useContext(AuthContext);
+// import React, { useEffect, useMemo, useState, useContext } from "react";
+// import Navbar from "@/components/Navbar";
+// import BottomNavbar from "@/components/BottomNavbar";
+// import { MessageCircle, X } from "lucide-react";
+// import { supabase } from "@/lib/supabaseClient";
+// import { AuthContext } from "@/lib/AuthProvider";
+// import { useRouter } from "next/navigation";
 
-  const [activeFilter, setActiveFilter] = useState("Questions for You");
-  const [questionsForYou, setQuestionsForYou] = useState([]);
-  const [allCategoryQuestions, setAllCategoryQuestions] = useState([]);
-  const [loading, setLoading] = useState(true);
+// export default function MessagePage() {
+//   const router = useRouter();
+//   const { currentUser, loading: authLoading } = useContext(AuthContext);
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedQuestion, setSelectedQuestion] = useState(null);
+//   const [activeFilter, setActiveFilter] = useState("Questions for You");
+//   const [questionsForYou, setQuestionsForYou] = useState([]);
+//   const [allCategoryQuestions, setAllCategoryQuestions] = useState([]);
+//   const [loading, setLoading] = useState(true);
 
-  const filteredQuestions = useMemo(() => {
-    return activeFilter === "Questions for You" ? questionsForYou : allCategoryQuestions;
-  }, [activeFilter, questionsForYou, allCategoryQuestions]);
+//   const [isModalOpen, setIsModalOpen] = useState(false);
+//   const [selectedQuestion, setSelectedQuestion] = useState(null);
 
-  useEffect(() => {
-    if (authLoading) return;
+//   // ✅ redirect (original behavior)
+//   useEffect(() => {
+//     if (!authLoading && !currentUser) {
+//       router.replace("/login");
+//     }
+//   }, [authLoading, currentUser, router]);
 
-    if (!currentUser) {
-      setLoading(false);
-      setQuestionsForYou([]);
-      setAllCategoryQuestions([]);
-      return;
-    }
+//   const filteredQuestions = useMemo(() => {
+//     return activeFilter === "Questions for You"
+//       ? questionsForYou
+//       : allCategoryQuestions;
+//   }, [activeFilter, questionsForYou, allCategoryQuestions]);
 
-    const loadQuestions = async () => {
-      setLoading(true);
+//   useEffect(() => {
+//     if (authLoading) return;
 
-      // 1) Assigned directly to current mentor
-      const { data: assignedData, error: assignedErr } = await supabase
-        .from("questions")
-        .select(`
-          id, title, question, category, created_at, image, author_id, assigned_to,
-          users:author_id ( name, profile_image, branch )
-        `)
-        .eq("assigned_to", currentUser.id)
-        .order("created_at", { ascending: false });
+//     if (!currentUser) {
+//       setLoading(false);
+//       return;
+//     }
 
-      if (assignedErr) console.error("❌ Error fetching assigned questions:", assignedErr.message);
-      setQuestionsForYou(assignedData || []);
+//     let mounted = true;
 
-      // 2) Category-based questions
-      const myCats = Array.isArray(currentUser.categories)
-        ? currentUser.categories.filter(Boolean)
-        : [];
+//     const loadQuestions = async () => {
+//       setLoading(true);
 
-      if (myCats.length === 0) {
-        setAllCategoryQuestions([]);
-        setLoading(false);
-        return;
-      }
+//       // Assigned questions
+//       const { data: assignedData, error: assignedErr } = await supabase
+//         .from("questions")
+//         .select(`
+//           id, title, question, category, created_at, image, author_id, assigned_to,
+//           users:author_id ( name, profile_image, branch )
+//         `)
+//         .eq("assigned_to", currentUser.id)
+//         .order("created_at", { ascending: false });
 
-      const { data: catData, error: catErr } = await supabase
-        .from("questions")
-        .select(`
-          id, title, question, category, created_at, image, author_id, assigned_to,
-          users:author_id ( name, profile_image, branch )
-        `)
-        .in("category", myCats)
-        .order("created_at", { ascending: false });
+//       if (assignedErr) console.error("❌ assigned questions:", assignedErr);
+//       if (mounted) setQuestionsForYou(assignedData || []);
 
-      if (catErr) console.error("❌ Error fetching category questions:", catErr.message);
+//       // Category-based questions (needs categories)
+//       const myCats = Array.isArray(currentUser.categories)
+//         ? currentUser.categories.filter(Boolean)
+//         : [];
 
-      const finalCategoryList = (catData || []).filter(
-        (q) => !q.assigned_to || q.assigned_to !== currentUser.id
-      );
+//       if (myCats.length === 0) {
+//         if (mounted) {
+//           setAllCategoryQuestions([]);
+//           setLoading(false);
+//         }
+//         return;
+//       }
 
-      setAllCategoryQuestions(finalCategoryList);
-      setLoading(false);
-    };
+//       const { data: catData, error: catErr } = await supabase
+//         .from("questions")
+//         .select(`
+//           id, title, question, category, created_at, image, author_id, assigned_to,
+//           users:author_id ( name, profile_image, branch )
+//         `)
+//         .in("category", myCats)
+//         .order("created_at", { ascending: false });
 
-    loadQuestions();
-  }, [authLoading, currentUser]);
+//       if (catErr) console.error("❌ category questions:", catErr);
 
-  const openModal = (q) => {
-    setSelectedQuestion(q);
-    setIsModalOpen(true);
-  };
+//       const finalCategoryList = (catData || []).filter(
+//         (q) => !q.assigned_to || q.assigned_to !== currentUser.id
+//       );
 
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setSelectedQuestion(null);
-  };
+//       if (mounted) {
+//         setAllCategoryQuestions(finalCategoryList);
+//         setLoading(false);
+//       }
+//     };
 
-  // ✅ Correct loading UI (original code was inverted)
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-purple-900 via-black to-black flex items-center justify-center text-white">
-        <div className="text-white text-center">
-          <div className="w-12 h-12 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p>Loading...</p>
-        </div>
-      </div>
-    );
-  }
+//     loadQuestions();
 
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-900 via-black to-black text-white relative">
-      <Navbar />
+//     return () => {
+//       mounted = false;
+//     };
+//   }, [authLoading, currentUser]);
 
-      {/* Header */}
-      <section className="max-w-7xl mx-auto px-4 pt-10 pb-6">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 bg-gradient-to-br from-yellow-400 to-amber-500 rounded-full flex items-center justify-center text-black font-extrabold shadow-lg">
-            <MessageCircle size={20} />
-          </div>
-          <span className="text-white/70">Messages</span>
-        </div>
-        <h1 className="text-2xl md:text-3xl font-semibold">Answer Questions</h1>
-        <p className="text-white/70 text-sm mt-1">
-          {!currentUser
-            ? "Log in to see questions in your categories."
-            : "Help juniors by sharing your knowledge."}
-        </p>
-      </section>
+//   const openModal = (q) => {
+//     setSelectedQuestion(q);
+//     setIsModalOpen(true);
+//   };
 
-      {/* Filter Buttons */}
-      <section className="max-w-7xl mx-auto px-4 pb-6">
-        <div className="flex gap-3">
-          {["Questions for You", "All Questions"].map((filter) => (
-            <button
-              key={filter}
-              onClick={() => setActiveFilter(filter)}
-              className={`px-6 py-3 rounded-lg text-sm font-medium transition-all ${
-                activeFilter === filter
-                  ? "bg-yellow-400 text-black shadow-lg"
-                  : "bg-white/10 border border-white/15 text-white/80 hover:bg-white/20"
-              }`}
-            >
-              {filter}
-            </button>
-          ))}
-        </div>
-      </section>
+//   const closeModal = () => {
+//     setIsModalOpen(false);
+//     setSelectedQuestion(null);
+//   };
 
-      {/* Questions Display */}
-      <section className="max-w-7xl mx-auto px-4 pb-24">
-        {loading ? (
-          <p className="text-gray-400 text-center py-10">Loading questions...</p>
-        ) : !currentUser ? (
-          <div className="text-center py-12">
-            <MessageCircle size={48} className="text-white/40 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-white/60 mb-2">
-              You’re not logged in
-            </h3>
-            <p className="text-sm text-white/40">
-              Please sign in to see questions in your categories.
-            </p>
-          </div>
-        ) : filteredQuestions.length === 0 ? (
-          <div className="text-center py-12">
-            <MessageCircle size={48} className="text-white/40 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-white/60 mb-2">
-              No questions found
-            </h3>
-            <p className="text-sm text-white/40">
-              Try changing your filter or check back later.
-            </p>
-          </div>
-        ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredQuestions.map((q) => (
-              <div
-                key={q.id}
-                className="bg-white/5 border border-white/10 rounded-2xl shadow-2xl backdrop-blur-md p-6 hover:bg-white/10 transition-all cursor-pointer group"
-                onClick={() => openModal(q)}
-              >
-                {/* Header */}
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <img
-                      src={q.users?.profile_image || "https://via.placeholder.com/48?text=U"}
-                      alt={q.users?.name || "Author"}
-                      className="w-12 h-12 rounded-full border border-white/20 object-cover"
-                    />
-                    <div>
-                      <h3 className="font-semibold text-white/90 group-hover:text-yellow-400 transition">
-                        {q.users?.name || "Anonymous"}
-                      </h3>
-                      <p className="text-xs text-white/60">
-                        {q.users?.branch || "Department"}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-xs bg-yellow-400/20 text-yellow-400 px-3 py-1 rounded-full border border-yellow-400/30 font-medium">
-                    {q.category || "General"}
-                  </div>
-                </div>
+//   // show loader while auth is checking (prevents blank flashes)
+//   if (authLoading) {
+//     return (
+//       <div className="min-h-screen bg-gradient-to-b from-purple-900 via-black to-black flex items-center justify-center text-white">
+//         <div className="text-white text-center">
+//           <div className="w-12 h-12 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+//           <p>Loading...</p>
+//         </div>
+//       </div>
+//     );
+//   }
 
-                {/* Title and Question */}
-                <h4 className="font-semibold text-white/90 mb-1 group-hover:text-yellow-400 line-clamp-2">
-                  {q.title}
-                </h4>
-                <p className="text-sm text-white/70 mb-4 leading-relaxed line-clamp-3">
-                  {q.question}
-                </p>
+//   return (
+//     <div className="min-h-screen bg-gradient-to-b from-purple-900 via-black to-black text-white relative">
+//       <Navbar />
 
-                {/* Optional image preview */}
-                {q.image && (
-                  <img
-                    src={q.image}
-                    alt="Question image"
-                    className="rounded-md mb-3 border border-white/10 max-h-48 object-cover"
-                  />
-                )}
+//       <section className="max-w-7xl mx-auto px-4 pt-10 pb-6">
+//         <div className="flex items-center gap-3 mb-4">
+//           <div className="w-10 h-10 bg-gradient-to-br from-yellow-400 to-amber-500 rounded-full flex items-center justify-center text-black font-extrabold shadow-lg">
+//             <MessageCircle size={20} />
+//           </div>
+//           <span className="text-white/70">Messages</span>
+//         </div>
+//         <h1 className="text-2xl md:text-3xl font-semibold">Answer Questions</h1>
+//         <p className="text-white/70 text-sm mt-1">
+//           Help juniors by sharing your knowledge.
+//         </p>
+//       </section>
 
-                {/* Footer */}
-                <div className="flex items-center justify-between text-xs text-white/60 mb-2">
-                  <div className="flex items-center gap-2">
-                    <Star size={14} className="text-yellow-400" />
-                    <span>Answers</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Clock size={12} />
-                    <span>
-                      {q.created_at ? new Date(q.created_at).toLocaleString() : "Just now"}
-                    </span>
-                  </div>
-                </div>
+//       <section className="max-w-7xl mx-auto px-4 pb-6">
+//         <div className="flex gap-3">
+//           {["Questions for You", "All Questions"].map((filter) => (
+//             <button
+//               key={filter}
+//               onClick={() => setActiveFilter(filter)}
+//               className={`px-6 py-3 rounded-lg text-sm font-medium transition-all ${
+//                 activeFilter === filter
+//                   ? "bg-yellow-400 text-black shadow-lg"
+//                   : "bg-white/10 border border-white/15 text-white/80 hover:bg-white/20"
+//               }`}
+//             >
+//               {filter}
+//             </button>
+//           ))}
+//         </div>
+//       </section>
 
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-white/60">Click to view & answer</span>
-                  <ArrowRight
-                    size={16}
-                    className="text-white/60 group-hover:text-yellow-400 transition-colors"
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
+//       <section className="max-w-7xl mx-auto px-4 pb-24">
+//         {loading ? (
+//           <p className="text-gray-400 text-center py-10">Loading questions...</p>
+//         ) : filteredQuestions.length === 0 ? (
+//           <div className="text-center py-12">
+//             <MessageCircle size={48} className="text-white/40 mx-auto mb-4" />
+//             <h3 className="text-lg font-medium text-white/60 mb-2">
+//               No questions found
+//             </h3>
+//             <p className="text-sm text-white/40">
+//               Try changing your filter or check back later.
+//             </p>
+//           </div>
+//         ) : (
+//           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+//             {filteredQuestions.map((q) => (
+//               <div
+//                 key={q.id}
+//                 className="bg-white/5 border border-white/10 rounded-2xl shadow-2xl p-6 hover:bg-white/10 transition cursor-pointer"
+//                 onClick={() => openModal(q)}
+//               >
+//                 <h4 className="font-semibold mb-1">{q.title}</h4>
+//                 <p className="text-sm text-white/70 line-clamp-3">
+//                   {q.question}
+//                 </p>
+//               </div>
+//             ))}
+//           </div>
+//         )}
+//       </section>
 
-      {/* Modal (Full Q&A) */}
-      {isModalOpen && selectedQuestion && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 px-4">
-          <div className="bg-gray-900 w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-xl p-6 border border-white/10 relative">
-            <button
-              onClick={closeModal}
-              className="absolute top-3 right-3 text-gray-400 hover:text-white"
-              aria-label="Close"
-            >
-              <X size={20} />
-            </button>
+//       {isModalOpen && selectedQuestion && (
+//         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+//           <div className="bg-gray-900 w-full max-w-2xl rounded-xl p-6 border border-white/10 relative">
+//             <button
+//               onClick={closeModal}
+//               className="absolute top-3 right-3 text-gray-400 hover:text-white"
+//               aria-label="Close"
+//             >
+//               <X size={20} />
+//             </button>
 
-            <div className="flex items-center gap-3 mb-4">
-              <img
-                src={selectedQuestion.users?.profile_image || "https://via.placeholder.com/48?text=U"}
-                alt={selectedQuestion.users?.name || "Author"}
-                className="w-12 h-12 rounded-full border border-white/20 object-cover"
-              />
-              <div>
-                <h3 className="font-semibold text-white">
-                  {selectedQuestion.users?.name || "Anonymous"}
-                </h3>
-                <p className="text-xs text-white/60">
-                  {selectedQuestion.users?.branch || "Department"}
-                </p>
-              </div>
-              <span className="ml-auto text-xs bg-yellow-400/20 text-yellow-400 px-3 py-1 rounded-full border border-yellow-400/30 font-medium">
-                {selectedQuestion.category || "General"}
-              </span>
-            </div>
+//             <h2 className="text-xl text-yellow-400 font-bold">
+//               {selectedQuestion.title}
+//             </h2>
+//             <p className="text-sm text-white/80 mt-2">
+//               {selectedQuestion.question}
+//             </p>
+//           </div>
+//         </div>
+//       )}
 
-            <h2 className="text-xl text-yellow-400 font-bold">{selectedQuestion.title}</h2>
-            <p className="text-sm text-white/80 mt-2">{selectedQuestion.question}</p>
-
-            {selectedQuestion.image && (
-              <img
-                src={selectedQuestion.image}
-                alt="Question attachment"
-                className="mt-4 rounded-lg border border-white/10"
-              />
-            )}
-
-            <div className="mt-6">
-              <QueBox
-                id={selectedQuestion.id}
-                category={selectedQuestion.category}
-                que={selectedQuestion.question}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      <BottomNavbar />
-    </div>
-  );
-}
+//       <BottomNavbar />
+//     </div>
+//   );
+// }
 
 
 
@@ -2611,7 +2200,9 @@ export default function MessagePage() {
 
 
 
-// app/message/page.js
+
+
+
 "use client";
 
 import React, { useEffect, useMemo, useState, useContext } from "react";
@@ -2634,7 +2225,6 @@ export default function MessagePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedQuestion, setSelectedQuestion] = useState(null);
 
-  // ✅ redirect (original behavior)
   useEffect(() => {
     if (!authLoading && !currentUser) {
       router.replace("/login");
@@ -2660,7 +2250,6 @@ export default function MessagePage() {
     const loadQuestions = async () => {
       setLoading(true);
 
-      // Assigned questions
       const { data: assignedData, error: assignedErr } = await supabase
         .from("questions")
         .select(`
@@ -2673,7 +2262,6 @@ export default function MessagePage() {
       if (assignedErr) console.error("❌ assigned questions:", assignedErr);
       if (mounted) setQuestionsForYou(assignedData || []);
 
-      // Category-based questions (needs categories)
       const myCats = Array.isArray(currentUser.categories)
         ? currentUser.categories.filter(Boolean)
         : [];
@@ -2724,7 +2312,6 @@ export default function MessagePage() {
     setSelectedQuestion(null);
   };
 
-  // show loader while auth is checking (prevents blank flashes)
   if (authLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-purple-900 via-black to-black flex items-center justify-center text-white">
