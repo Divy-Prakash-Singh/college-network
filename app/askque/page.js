@@ -3127,30 +3127,23 @@
 
 
 
-
-
-
-
 "use client"
 
 import React, { useEffect, useMemo, useState, useContext, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import BottomNavbar from "@/components/BottomNavbar";
 import { supabase } from "@/lib/supabaseClient";
 import { AuthContext } from "@/lib/AuthProvider";
 
-// Force dynamic rendering - prevents static generation
-export const dynamic = 'force-dynamic';
-
 function AskQuestionContent() {
   const router = useRouter();
-  const search = useSearchParams();
   const { currentUser, loading: authLoading } = useContext(AuthContext);
 
-  const toMentorId = search.get("to") || null;
-  const toMentorName = search.get("name") || null;
-
+  // Get URL params directly from window (client-side only)
+  const [toMentorId, setToMentorId] = useState(null);
+  const [toMentorName, setToMentorName] = useState(null);
+  
   const [mentor, setMentor] = useState(null);
   const [loadingMentor, setLoadingMentor] = useState(false);
 
@@ -3184,6 +3177,15 @@ function AskQuestionContent() {
     "Startup",
     "AI",
   ];
+
+  // Extract URL params on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      setToMentorId(params.get("to") || null);
+      setToMentorName(params.get("name") || null);
+    }
+  }, []);
 
   useEffect(() => {
     if (!authLoading && !currentUser) {
