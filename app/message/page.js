@@ -2595,3 +2595,235 @@ export default function MessagePage() {
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// app/message/page.js
+"use client";
+
+import React, { useEffect, useMemo, useState, useContext } from "react";
+import Navbar from "@/components/Navbar";
+import BottomNavbar from "@/components/BottomNavbar";
+import { MessageCircle, X } from "lucide-react";
+import { supabase } from "@/lib/supabaseClient";
+import { AuthContext } from "@/lib/AuthProvider";
+import { useRouter } from "next/navigation";
+
+export default function MessagePage() {
+  const router = useRouter();
+  const { currentUser, loading: authLoading } = useContext(AuthContext);
+
+  const [activeFilter, setActiveFilter] = useState("Questions for You");
+  const [questionsForYou, setQuestionsForYou] = useState([]);
+  const [allCategoryQuestions, setAllCategoryQuestions] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedQuestion, setSelectedQuestion] = useState(null);
+
+  // ✅ redirect (original behavior)
+  useEffect(() => {
+    if (!authLoading && !currentUser) {
+      router.replace("/login");
+    }
+  }, [authLoading, currentUser, router]);
+
+  const filteredQuestions = useMemo(() => {
+    return activeFilter === "Questions for You"
+      ? questionsForYou
+      : allCategoryQuestions;
+  }, [activeFilter, questionsForYou, allCategoryQuestions]);
+
+  useEffect(() => {
+    if (authLoading) return;
+
+    if (!currentUser) {
+      setLoading(false);
+      return;
+    }
+
+    let mounted = true;
+
+    const loadQuestions = async () => {
+      setLoading(true);
+
+      // Assigned questions
+      const { data: assignedData, error: assignedErr } = await supabase
+        .from("questions")
+        .select(`
+          id, title, question, category, created_at, image, author_id, assigned_to,
+          users:author_id ( name, profile_image, branch )
+        `)
+        .eq("assigned_to", currentUser.id)
+        .order("created_at", { ascending: false });
+
+      if (assignedErr) console.error("❌ assigned questions:", assignedErr);
+      if (mounted) setQuestionsForYou(assignedData || []);
+
+      // Category-based questions (needs categories)
+      const myCats = Array.isArray(currentUser.categories)
+        ? currentUser.categories.filter(Boolean)
+        : [];
+
+      if (myCats.length === 0) {
+        if (mounted) {
+          setAllCategoryQuestions([]);
+          setLoading(false);
+        }
+        return;
+      }
+
+      const { data: catData, error: catErr } = await supabase
+        .from("questions")
+        .select(`
+          id, title, question, category, created_at, image, author_id, assigned_to,
+          users:author_id ( name, profile_image, branch )
+        `)
+        .in("category", myCats)
+        .order("created_at", { ascending: false });
+
+      if (catErr) console.error("❌ category questions:", catErr);
+
+      const finalCategoryList = (catData || []).filter(
+        (q) => !q.assigned_to || q.assigned_to !== currentUser.id
+      );
+
+      if (mounted) {
+        setAllCategoryQuestions(finalCategoryList);
+        setLoading(false);
+      }
+    };
+
+    loadQuestions();
+
+    return () => {
+      mounted = false;
+    };
+  }, [authLoading, currentUser]);
+
+  const openModal = (q) => {
+    setSelectedQuestion(q);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedQuestion(null);
+  };
+
+  // show loader while auth is checking (prevents blank flashes)
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-purple-900 via-black to-black flex items-center justify-center text-white">
+        <div className="text-white text-center">
+          <div className="w-12 h-12 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-purple-900 via-black to-black text-white relative">
+      <Navbar />
+
+      <section className="max-w-7xl mx-auto px-4 pt-10 pb-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 bg-gradient-to-br from-yellow-400 to-amber-500 rounded-full flex items-center justify-center text-black font-extrabold shadow-lg">
+            <MessageCircle size={20} />
+          </div>
+          <span className="text-white/70">Messages</span>
+        </div>
+        <h1 className="text-2xl md:text-3xl font-semibold">Answer Questions</h1>
+        <p className="text-white/70 text-sm mt-1">
+          Help juniors by sharing your knowledge.
+        </p>
+      </section>
+
+      <section className="max-w-7xl mx-auto px-4 pb-6">
+        <div className="flex gap-3">
+          {["Questions for You", "All Questions"].map((filter) => (
+            <button
+              key={filter}
+              onClick={() => setActiveFilter(filter)}
+              className={`px-6 py-3 rounded-lg text-sm font-medium transition-all ${
+                activeFilter === filter
+                  ? "bg-yellow-400 text-black shadow-lg"
+                  : "bg-white/10 border border-white/15 text-white/80 hover:bg-white/20"
+              }`}
+            >
+              {filter}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="max-w-7xl mx-auto px-4 pb-24">
+        {loading ? (
+          <p className="text-gray-400 text-center py-10">Loading questions...</p>
+        ) : filteredQuestions.length === 0 ? (
+          <div className="text-center py-12">
+            <MessageCircle size={48} className="text-white/40 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-white/60 mb-2">
+              No questions found
+            </h3>
+            <p className="text-sm text-white/40">
+              Try changing your filter or check back later.
+            </p>
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredQuestions.map((q) => (
+              <div
+                key={q.id}
+                className="bg-white/5 border border-white/10 rounded-2xl shadow-2xl p-6 hover:bg-white/10 transition cursor-pointer"
+                onClick={() => openModal(q)}
+              >
+                <h4 className="font-semibold mb-1">{q.title}</h4>
+                <p className="text-sm text-white/70 line-clamp-3">
+                  {q.question}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {isModalOpen && selectedQuestion && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+          <div className="bg-gray-900 w-full max-w-2xl rounded-xl p-6 border border-white/10 relative">
+            <button
+              onClick={closeModal}
+              className="absolute top-3 right-3 text-gray-400 hover:text-white"
+              aria-label="Close"
+            >
+              <X size={20} />
+            </button>
+
+            <h2 className="text-xl text-yellow-400 font-bold">
+              {selectedQuestion.title}
+            </h2>
+            <p className="text-sm text-white/80 mt-2">
+              {selectedQuestion.question}
+            </p>
+          </div>
+        </div>
+      )}
+
+      <BottomNavbar />
+    </div>
+  );
+}

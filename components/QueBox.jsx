@@ -1299,6 +1299,508 @@
 
 
 
+// "use client";
+
+// import { useEffect, useMemo, useState } from "react";
+// import { supabase } from "@/lib/supabaseClient";
+
+// const timeAgo = (iso) => {
+//   const d = new Date(iso);
+//   const diff = (Date.now() - d.getTime()) / 1000;
+//   const h = Math.floor(diff / 3600);
+//   const m = Math.floor((diff % 3600) / 60);
+//   if (h > 0) return `${h} hour${h > 1 ? "s" : ""} ago`;
+//   if (m > 0) return `${m} minute${m > 1 ? "s" : ""} ago`;
+//   return "just now";
+// };
+
+// const absoluteDate = (iso) =>
+//   new Date(iso).toLocaleString(undefined, {
+//     year: "numeric",
+//     month: "short",
+//     day: "numeric",
+//     hour: "2-digit",
+//     minute: "2-digit",
+//   });
+
+// const Avatar = ({ name, src, size = 40 }) => {
+//   const initial = (name?.[0] || "?").toUpperCase();
+//   if (src) {
+//     return (
+//       <img
+//         src={src}
+//         alt={name || "User"}
+//         width={size}
+//         height={size}
+//         className="rounded-full border border-[rgba(255,255,255,0.2)] object-cover"
+//         style={{ width: size, height: size }}
+//       />
+//     );
+//   }
+//   return (
+//     <div
+//       className="rounded-full flex items-center justify-center border border-[rgba(255,255,255,0.2)] text-[rgba(255,255,255,0.85)]"
+//       style={{
+//         width: size,
+//         height: size,
+//         background: "rgba(255,255,255,0.08)",
+//         fontWeight: 700,
+//       }}
+//     >
+//       {initial}
+//     </div>
+//   );
+// };
+
+// export default function QueBox({ id, category, que, title, image, user, onOpenModal }) {
+//   const [answerText, setAnswerText] = useState("");
+//   const [topAnswer, setTopAnswer] = useState(null);
+//   const [answerCount, setAnswerCount] = useState(0);
+//   const [loadingPreview, setLoadingPreview] = useState(true);
+//   const [submitting, setSubmitting] = useState(false);
+//   const [isMentor, setIsMentor] = useState(false);
+//   const [checkingMentor, setCheckingMentor] = useState(true);
+//   const [currentUserId, setCurrentUserId] = useState(null);
+
+//   const askerName = user?.name || "Unknown User";
+//   const askerAvatar = user?.profile_image || null;
+
+//   // Check if user is a mentor
+//   useEffect(() => {
+//     let mounted = true;
+
+//     const checkMentorStatus = async () => {
+//       try {
+//         const { data: { user: authUser }, error: userError } = await supabase.auth.getUser();
+        
+//         if (userError || !authUser) {
+//           if (mounted) {
+//             setIsMentor(false);
+//             setCheckingMentor(false);
+//             setCurrentUserId(null);
+//           }
+//           return;
+//         }
+
+//         if (mounted) {
+//           setCurrentUserId(authUser.id);
+//         }
+
+//         const { data: userData, error: dbError } = await supabase
+//           .from('users')
+//           .select('is_mentor')
+//           .eq('id', authUser.id)
+//           .single();
+
+//         if (dbError) {
+//           console.error('Error fetching user data:', dbError);
+//         }
+
+//         if (mounted) {
+//           setIsMentor(userData?.is_mentor || false);
+//           setCheckingMentor(false);
+//         }
+//       } catch (err) {
+//         console.error('Error checking mentor status:', err);
+//         if (mounted) {
+//           setIsMentor(false);
+//           setCheckingMentor(false);
+//         }
+//       }
+//     };
+
+//     checkMentorStatus();
+
+//     return () => {
+//       mounted = false;
+//     };
+//   }, []);
+
+//   // Fetch preview: top liked answer + total count
+//   useEffect(() => {
+//     let cancelled = false;
+//     let timeoutId;
+
+//     const fetchPreview = async () => {
+//       setLoadingPreview(true);
+
+//       try {
+//         // Add timeout to prevent hanging
+//         const timeoutPromise = new Promise((_, reject) =>
+//           setTimeout(() => reject(new Error('Request timeout')), 10000)
+//         );
+
+//         const fetchPromise = supabase
+//           .from("answers")
+//           .select("id, content, author_id, created_at")
+//           .eq("question_id", id);
+
+//         const { data: answers, error } = await Promise.race([fetchPromise, timeoutPromise]);
+
+//         if (cancelled) return;
+
+//         if (error) {
+//           console.error("answers fetch error:", error);
+//           setTopAnswer(null);
+//           setAnswerCount(0);
+//           setLoadingPreview(false);
+//           return;
+//         }
+
+//         setAnswerCount(answers?.length || 0);
+
+//         if (!answers || answers.length === 0) {
+//           setTopAnswer(null);
+//           setLoadingPreview(false);
+//           return;
+//         }
+
+//         // Fetch like counts for each answer
+//         const withLikes = await Promise.all(
+//           answers.map(async (a) => {
+//             const { count } = await supabase
+//               .from("answer_likes")
+//               .select("*", { count: "exact", head: true })
+//               .eq("answer_id", a.id);
+//             return { ...a, like_count: count || 0 };
+//           })
+//         );
+
+//         if (cancelled) return;
+
+//         // Sort by like_count desc, then created_at desc
+//         withLikes.sort((a, b) => {
+//           if (b.like_count !== a.like_count) return b.like_count - a.like_count;
+//           return new Date(b.created_at) - new Date(a.created_at);
+//         });
+
+//         const best = withLikes[0];
+
+//         // Fetch author for best answer
+//         let author = null;
+//         if (best?.author_id) {
+//           const { data: u } = await supabase
+//             .from("users")
+//             .select("id, name, profile_image")
+//             .eq("id", best.author_id)
+//             .single();
+//           author = u || null;
+//         }
+
+//         if (!cancelled) {
+//           setTopAnswer({ ...best, author });
+//           setLoadingPreview(false);
+//         }
+//       } catch (err) {
+//         if (!cancelled) {
+//           console.error('Error fetching preview:', err);
+//           setTopAnswer(null);
+//           setAnswerCount(0);
+//           setLoadingPreview(false);
+//         }
+//       }
+//     };
+
+//     fetchPreview();
+
+//     return () => {
+//       cancelled = true;
+//       if (timeoutId) clearTimeout(timeoutId);
+//     };
+//   }, [id]);
+
+//   // Submit a new answer
+//   const submitAnswer = async (e) => {
+//     e.preventDefault();
+    
+//     if (!answerText.trim()) {
+//       alert("Please write an answer");
+//       return;
+//     }
+
+//     if (!currentUserId) {
+//       alert("Please login to answer");
+//       return;
+//     }
+
+//     if (!isMentor) {
+//       alert("Only mentors can answer questions");
+//       return;
+//     }
+
+//     setSubmitting(true);
+
+//     try {
+//       const timeoutPromise = new Promise((_, reject) =>
+//         setTimeout(() => reject(new Error('Request timeout')), 10000)
+//       );
+
+//       const insertPromise = supabase.from("answers").insert([
+//         {
+//           question_id: id,
+//           author_id: currentUserId,
+//           content: answerText.trim(),
+//         },
+//       ]);
+
+//       const { error } = await Promise.race([insertPromise, timeoutPromise]);
+
+//       if (error) {
+//         console.error('Insert error:', error);
+//         if (error.code === '42501') {
+//           alert("Permission denied. Please ensure you are a mentor.");
+//         } else {
+//           alert("Failed to post answer: " + error.message);
+//         }
+//         setSubmitting(false);
+//         return;
+//       }
+
+//       setAnswerText("");
+      
+//       // Refresh preview
+//       const { data: answers } = await supabase
+//         .from("answers")
+//         .select("id, content, author_id, created_at")
+//         .eq("question_id", id);
+
+//       setAnswerCount(answers?.length || 0);
+
+//       if (!answers || answers.length === 0) {
+//         setTopAnswer(null);
+//         setLoadingPreview(false);
+//         setSubmitting(false);
+//         return;
+//       }
+
+//       const withLikes = await Promise.all(
+//         answers.map(async (a) => {
+//           const { count } = await supabase
+//             .from("answer_likes")
+//             .select("*", { count: "exact", head: true })
+//             .eq("answer_id", a.id);
+//           return { ...a, like_count: count || 0 };
+//         })
+//       );
+
+//       withLikes.sort((a, b) => {
+//         if (b.like_count !== a.like_count) return b.like_count - a.like_count;
+//         return new Date(b.created_at) - new Date(a.created_at);
+//       });
+
+//       const best = withLikes[0];
+
+//       let author = null;
+//       if (best?.author_id) {
+//         const { data: u } = await supabase
+//           .from("users")
+//           .select("id, name, profile_image")
+//           .eq("id", best.author_id)
+//           .single();
+//         author = u || null;
+//       }
+
+//       setTopAnswer({ ...best, author });
+//       setLoadingPreview(false);
+//       setSubmitting(false);
+      
+//       alert("Answer posted successfully!");
+//     } catch (err) {
+//       console.error('Error submitting answer:', err);
+//       if (err.message === 'Request timeout') {
+//         alert('Request timed out. Please check your connection and try again.');
+//       } else {
+//         alert('Failed to post answer. Please try again.');
+//       }
+//       setSubmitting(false);
+//     }
+//   };
+
+//   const truncated = useMemo(() => {
+//     if (!topAnswer?.content) return "";
+//     const max = 220;
+//     return topAnswer.content.length > max
+//       ? topAnswer.content.slice(0, max) + "…"
+//       : topAnswer.content;
+//   }, [topAnswer]);
+
+//   return (
+//     <div
+//       className="w-full max-w-2xl mx-auto p-4 md:p-5 mb-6 rounded-xl border shadow-lg"
+//       style={{
+//         background: "rgba(255,255,255,0.05)",
+//         borderColor: "rgba(255,255,255,0.1)",
+//       }}
+//     >
+//       {/* Header (asker) */}
+//       <div className="flex items-center justify-between mb-3">
+//         <div className="flex items-center gap-3">
+//           <Avatar name={askerName} src={askerAvatar} size={40} />
+//           <div>
+//             <div className="text-[rgba(255,255,255,0.92)] text-sm font-medium">
+//               {askerName}
+//             </div>
+//           </div>
+//         </div>
+//         <span
+//           className="px-2.5 py-1 text-xs rounded-full"
+//           style={{
+//             background: "rgba(255,255,255,0.08)",
+//             border: "1px solid rgba(255,255,255,0.15)",
+//             color: "rgba(255,255,255,0.85)",
+//           }}
+//         >
+//           {category || "General"}
+//         </span>
+//       </div>
+
+//       {/* Title + Question */}
+//       {title && (
+//         <h3 className="text-lg font-semibold text-[#FDE68A]">{title}</h3>
+//       )}
+//       <p className="text-[rgba(255,255,255,0.9)] mt-1">{que}</p>
+
+//       {/* Show image if exists */}
+//       {image && (
+//         <img
+//           src={image}
+//           alt="question attachment"
+//           className="mt-3 w-full rounded-lg object-cover border border-white/20"
+//         />
+//       )}
+
+//       {/* Top answer preview or CTA */}
+//       <div
+//         className="mt-4 p-4 rounded-lg"
+//         style={{
+//           background: "rgba(255,255,255,0.06)",
+//           border: "1px solid rgba(255,255,255,0.12)",
+//         }}
+//       >
+//         {loadingPreview ? (
+//           <p className="text-[rgba(255,255,255,0.7)] text-sm">Loading preview…</p>
+//         ) : answerCount === 0 ? (
+//           <p className="text-[rgba(255,255,255,0.75)] text-sm italic">
+//             Be the first to answer this question.
+//           </p>
+//         ) : (
+//           <>
+//             <div className="flex items-center gap-3 mb-2">
+//               <Avatar
+//                 name={topAnswer?.author?.name || "Unknown"}
+//                 src={topAnswer?.author?.profile_image || null}
+//                 size={32}
+//               />
+//               <div className="text-sm">
+//                 <div className="text-[rgba(255,255,255,0.9)] font-medium">
+//                   {topAnswer?.author?.name || "Unknown User"}
+//                 </div>
+//                 <div className="text-[rgba(255,255,255,0.6)] text-xs">
+//                   {timeAgo(topAnswer?.created_at)} • {absoluteDate(topAnswer?.created_at)}
+//                 </div>
+//               </div>
+//               <div className="ml-auto text-xs text-[rgba(255,255,255,0.75)]">
+//                 👍 {topAnswer?.like_count || 0}
+//               </div>
+//             </div>
+//             <p className="text-[rgba(255,255,255,0.85)] text-sm">{truncated}</p>
+//           </>
+//         )}
+//       </div>
+
+//       {/* Actions */}
+//       <div className="flex items-center justify-between mt-3">
+//         <div className="text-xs text-[rgba(255,255,255,0.7)]">
+//           {answerCount} answer{answerCount === 1 ? "" : "s"}
+//         </div>
+//         {answerCount > 0 && (
+//           <button
+//             onClick={() =>
+//               onOpenModal?.({
+//                 id,
+//                 category,
+//                 que,
+//                 title,
+//               })
+//             }
+//             className="px-3 py-2 text-sm rounded-lg"
+//             style={{
+//               background: "rgba(255,255,255,0.1)",
+//               border: "1px solid rgba(255,255,255,0.15)",
+//               color: "rgba(255,255,255,0.95)",
+//             }}
+//           >
+//             View Details
+//           </button>
+//         )}
+//       </div>
+
+//       {/* Inline answer form - only show if mentor */}
+//       {!checkingMentor && (
+//         <>
+//           {isMentor ? (
+//             <form onSubmit={submitAnswer} className="mt-4">
+//               <textarea
+//                 value={answerText}
+//                 onChange={(e) => setAnswerText(e.target.value)}
+//                 placeholder="Write your answer…"
+//                 className="w-full rounded-lg p-3 outline-none"
+//                 style={{
+//                   background: "rgba(255,255,255,0.06)",
+//                   border: "1px solid rgba(255,255,255,0.2)",
+//                   color: "white",
+//                 }}
+//                 rows={3}
+//                 disabled={submitting}
+//               />
+//               <div className="flex justify-end mt-2">
+//                 <button
+//                   type="submit"
+//                   disabled={submitting || !answerText.trim()}
+//                   className="px-4 py-2 rounded-lg font-medium disabled:opacity-60 transition-opacity"
+//                   style={{
+//                     background: "#FDE047",
+//                     color: "#111827",
+//                   }}
+//                 >
+//                   {submitting ? "Posting…" : "Post Answer"}
+//                 </button>
+//               </div>
+//             </form>
+//           ) : (
+//             <div className="mt-4 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+//               <p className="text-yellow-200 text-sm">
+//                 Only mentors can answer questions.
+//               </p>
+//             </div>
+//           )}
+//         </>
+//       )}
+//     </div>
+//   );
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// components/QueBox.jsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -1365,14 +1867,13 @@ export default function QueBox({ id, category, que, title, image, user, onOpenMo
   const askerName = user?.name || "Unknown User";
   const askerAvatar = user?.profile_image || null;
 
-  // Check if user is a mentor
   useEffect(() => {
     let mounted = true;
 
     const checkMentorStatus = async () => {
       try {
         const { data: { user: authUser }, error: userError } = await supabase.auth.getUser();
-        
+
         if (userError || !authUser) {
           if (mounted) {
             setIsMentor(false);
@@ -1382,26 +1883,22 @@ export default function QueBox({ id, category, que, title, image, user, onOpenMo
           return;
         }
 
-        if (mounted) {
-          setCurrentUserId(authUser.id);
-        }
+        if (mounted) setCurrentUserId(authUser.id);
 
         const { data: userData, error: dbError } = await supabase
-          .from('users')
-          .select('is_mentor')
-          .eq('id', authUser.id)
+          .from("users")
+          .select("is_mentor")
+          .eq("id", authUser.id)
           .single();
 
-        if (dbError) {
-          console.error('Error fetching user data:', dbError);
-        }
+        if (dbError) console.error("Error fetching user data:", dbError);
 
         if (mounted) {
           setIsMentor(userData?.is_mentor || false);
           setCheckingMentor(false);
         }
       } catch (err) {
-        console.error('Error checking mentor status:', err);
+        console.error("Error checking mentor status:", err);
         if (mounted) {
           setIsMentor(false);
           setCheckingMentor(false);
@@ -1410,32 +1907,22 @@ export default function QueBox({ id, category, que, title, image, user, onOpenMo
     };
 
     checkMentorStatus();
-
     return () => {
       mounted = false;
     };
   }, []);
 
-  // Fetch preview: top liked answer + total count
   useEffect(() => {
     let cancelled = false;
-    let timeoutId;
 
     const fetchPreview = async () => {
       setLoadingPreview(true);
 
       try {
-        // Add timeout to prevent hanging
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Request timeout')), 10000)
-        );
-
-        const fetchPromise = supabase
+        const { data: answers, error } = await supabase
           .from("answers")
           .select("id, content, author_id, created_at")
           .eq("question_id", id);
-
-        const { data: answers, error } = await Promise.race([fetchPromise, timeoutPromise]);
 
         if (cancelled) return;
 
@@ -1455,7 +1942,6 @@ export default function QueBox({ id, category, que, title, image, user, onOpenMo
           return;
         }
 
-        // Fetch like counts for each answer
         const withLikes = await Promise.all(
           answers.map(async (a) => {
             const { count } = await supabase
@@ -1468,7 +1954,6 @@ export default function QueBox({ id, category, que, title, image, user, onOpenMo
 
         if (cancelled) return;
 
-        // Sort by like_count desc, then created_at desc
         withLikes.sort((a, b) => {
           if (b.like_count !== a.like_count) return b.like_count - a.like_count;
           return new Date(b.created_at) - new Date(a.created_at);
@@ -1476,7 +1961,6 @@ export default function QueBox({ id, category, que, title, image, user, onOpenMo
 
         const best = withLikes[0];
 
-        // Fetch author for best answer
         let author = null;
         if (best?.author_id) {
           const { data: u } = await supabase
@@ -1493,7 +1977,7 @@ export default function QueBox({ id, category, que, title, image, user, onOpenMo
         }
       } catch (err) {
         if (!cancelled) {
-          console.error('Error fetching preview:', err);
+          console.error("Error fetching preview:", err);
           setTopAnswer(null);
           setAnswerCount(0);
           setLoadingPreview(false);
@@ -1505,14 +1989,12 @@ export default function QueBox({ id, category, que, title, image, user, onOpenMo
 
     return () => {
       cancelled = true;
-      if (timeoutId) clearTimeout(timeoutId);
     };
   }, [id]);
 
-  // Submit a new answer
   const submitAnswer = async (e) => {
     e.preventDefault();
-    
+
     if (!answerText.trim()) {
       alert("Please write an answer");
       return;
@@ -1531,11 +2013,7 @@ export default function QueBox({ id, category, que, title, image, user, onOpenMo
     setSubmitting(true);
 
     try {
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Request timeout')), 10000)
-      );
-
-      const insertPromise = supabase.from("answers").insert([
+      const { error } = await supabase.from("answers").insert([
         {
           question_id: id,
           author_id: currentUserId,
@@ -1543,11 +2021,9 @@ export default function QueBox({ id, category, que, title, image, user, onOpenMo
         },
       ]);
 
-      const { error } = await Promise.race([insertPromise, timeoutPromise]);
-
       if (error) {
-        console.error('Insert error:', error);
-        if (error.code === '42501') {
+        console.error("Insert error:", error);
+        if (error.code === "42501") {
           alert("Permission denied. Please ensure you are a mentor.");
         } else {
           alert("Failed to post answer: " + error.message);
@@ -1557,61 +2033,11 @@ export default function QueBox({ id, category, que, title, image, user, onOpenMo
       }
 
       setAnswerText("");
-      
-      // Refresh preview
-      const { data: answers } = await supabase
-        .from("answers")
-        .select("id, content, author_id, created_at")
-        .eq("question_id", id);
-
-      setAnswerCount(answers?.length || 0);
-
-      if (!answers || answers.length === 0) {
-        setTopAnswer(null);
-        setLoadingPreview(false);
-        setSubmitting(false);
-        return;
-      }
-
-      const withLikes = await Promise.all(
-        answers.map(async (a) => {
-          const { count } = await supabase
-            .from("answer_likes")
-            .select("*", { count: "exact", head: true })
-            .eq("answer_id", a.id);
-          return { ...a, like_count: count || 0 };
-        })
-      );
-
-      withLikes.sort((a, b) => {
-        if (b.like_count !== a.like_count) return b.like_count - a.like_count;
-        return new Date(b.created_at) - new Date(a.created_at);
-      });
-
-      const best = withLikes[0];
-
-      let author = null;
-      if (best?.author_id) {
-        const { data: u } = await supabase
-          .from("users")
-          .select("id, name, profile_image")
-          .eq("id", best.author_id)
-          .single();
-        author = u || null;
-      }
-
-      setTopAnswer({ ...best, author });
-      setLoadingPreview(false);
       setSubmitting(false);
-      
       alert("Answer posted successfully!");
     } catch (err) {
-      console.error('Error submitting answer:', err);
-      if (err.message === 'Request timeout') {
-        alert('Request timed out. Please check your connection and try again.');
-      } else {
-        alert('Failed to post answer. Please try again.');
-      }
+      console.error("Error submitting answer:", err);
+      alert("Failed to post answer. Please try again.");
       setSubmitting(false);
     }
   };
@@ -1619,9 +2045,7 @@ export default function QueBox({ id, category, que, title, image, user, onOpenMo
   const truncated = useMemo(() => {
     if (!topAnswer?.content) return "";
     const max = 220;
-    return topAnswer.content.length > max
-      ? topAnswer.content.slice(0, max) + "…"
-      : topAnswer.content;
+    return topAnswer.content.length > max ? topAnswer.content.slice(0, max) + "…" : topAnswer.content;
   }, [topAnswer]);
 
   return (
@@ -1632,14 +2056,11 @@ export default function QueBox({ id, category, que, title, image, user, onOpenMo
         borderColor: "rgba(255,255,255,0.1)",
       }}
     >
-      {/* Header (asker) */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-3">
           <Avatar name={askerName} src={askerAvatar} size={40} />
           <div>
-            <div className="text-[rgba(255,255,255,0.92)] text-sm font-medium">
-              {askerName}
-            </div>
+            <div className="text-[rgba(255,255,255,0.92)] text-sm font-medium">{askerName}</div>
           </div>
         </div>
         <span
@@ -1654,13 +2075,9 @@ export default function QueBox({ id, category, que, title, image, user, onOpenMo
         </span>
       </div>
 
-      {/* Title + Question */}
-      {title && (
-        <h3 className="text-lg font-semibold text-[#FDE68A]">{title}</h3>
-      )}
+      {title && <h3 className="text-lg font-semibold text-[#FDE68A]">{title}</h3>}
       <p className="text-[rgba(255,255,255,0.9)] mt-1">{que}</p>
 
-      {/* Show image if exists */}
       {image && (
         <img
           src={image}
@@ -1669,7 +2086,6 @@ export default function QueBox({ id, category, que, title, image, user, onOpenMo
         />
       )}
 
-      {/* Top answer preview or CTA */}
       <div
         className="mt-4 p-4 rounded-lg"
         style={{
@@ -1708,19 +2124,21 @@ export default function QueBox({ id, category, que, title, image, user, onOpenMo
         )}
       </div>
 
-      {/* Actions */}
       <div className="flex items-center justify-between mt-3">
         <div className="text-xs text-[rgba(255,255,255,0.7)]">
           {answerCount} answer{answerCount === 1 ? "" : "s"}
         </div>
+
         {answerCount > 0 && (
           <button
             onClick={() =>
               onOpenModal?.({
                 id,
-                category,
-                que,
                 title,
+                question: que,  // ✅ match DB field name
+                category,
+                image,
+                users: user,    // ✅ match how you use q.users elsewhere
               })
             }
             className="px-3 py-2 text-sm rounded-lg"
@@ -1735,7 +2153,6 @@ export default function QueBox({ id, category, que, title, image, user, onOpenMo
         )}
       </div>
 
-      {/* Inline answer form - only show if mentor */}
       {!checkingMentor && (
         <>
           {isMentor ? (
@@ -1758,10 +2175,7 @@ export default function QueBox({ id, category, que, title, image, user, onOpenMo
                   type="submit"
                   disabled={submitting || !answerText.trim()}
                   className="px-4 py-2 rounded-lg font-medium disabled:opacity-60 transition-opacity"
-                  style={{
-                    background: "#FDE047",
-                    color: "#111827",
-                  }}
+                  style={{ background: "#FDE047", color: "#111827" }}
                 >
                   {submitting ? "Posting…" : "Post Answer"}
                 </button>
@@ -1769,9 +2183,7 @@ export default function QueBox({ id, category, que, title, image, user, onOpenMo
             </form>
           ) : (
             <div className="mt-4 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
-              <p className="text-yellow-200 text-sm">
-                Only mentors can answer questions.
-              </p>
+              <p className="text-yellow-200 text-sm">Only mentors can answer questions.</p>
             </div>
           )}
         </>
