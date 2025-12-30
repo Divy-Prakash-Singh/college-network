@@ -4248,11 +4248,12 @@ export default function HomePage() {
       style={{ background: "linear-gradient(to bottom, #4C1D95, #000000 60%)" }}
     >
       <Navbar />
-        <div className="w-screen mx-auto flex gap-6 mt-6 px-4 pb-20">
-      {/* LEFT SIDEBAR */}
-              <aside className="hidden lg:block w-1/4">
-          <div className="sticky top-20 space-y-4">
-           <button
+      
+       <div className="w-screen mx-auto flex gap-6 mt-6 px-4 pb-20">
+         {/* LEFT SIDEBAR */}
+         <aside className="hidden lg:block w-1/4">
+           <div className="sticky top-20 space-y-4">
+             <button
               onClick={() => router.push("/society/create")}
               className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-semibold p-3 rounded-lg transition"
             >
@@ -4374,6 +4375,7 @@ export default function HomePage() {
           </div>
         </aside>
       </div>
+
       <BottomNavbar />
     </div>
   );
