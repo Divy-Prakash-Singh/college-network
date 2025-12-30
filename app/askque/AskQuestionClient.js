@@ -1,7 +1,8 @@
+// app/askque/AskQuestionClient.js
 "use client";
 
-import React, { useEffect, useMemo, useState, useContext, Suspense } from "react";
-import { useRouter } from "next/navigation";
+import React, { useEffect, useMemo, useState, useContext } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import BottomNavbar from "@/components/BottomNavbar";
 import { supabase } from "@/lib/supabaseClient";
@@ -9,10 +10,11 @@ import { AuthContext } from "@/lib/AuthProvider";
 
 export default function AskQuestionClient() {
   const router = useRouter();
+  const search = useSearchParams();
   const { currentUser, loading: authLoading } = useContext(AuthContext);
 
-  const [toMentorId, setToMentorId] = useState(null);
-  const [toMentorName, setToMentorName] = useState(null);
+  const toMentorId = search.get("to") || null;
+  const toMentorName = search.get("name") || null;
 
   const [mentor, setMentor] = useState(null);
   const [loadingMentor, setLoadingMentor] = useState(false);
@@ -48,16 +50,14 @@ export default function AskQuestionClient() {
     "AI",
   ];
 
+  // Auth redirect
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    setToMentorId(params.get("to") || null);
-    setToMentorName(params.get("name") || null);
-  }, []);
-
-  useEffect(() => {
-    if (!authLoading && !currentUser) router.replace("/login");
+    if (!authLoading && !currentUser) {
+      router.replace("/login");
+    }
   }, [authLoading, currentUser, router]);
 
+  // Fetch mentor
   useEffect(() => {
     if (!toMentorId || !currentUser) return;
 
@@ -70,7 +70,7 @@ export default function AskQuestionClient() {
       .eq("id", toMentorId)
       .single()
       .then(({ data, error }) => {
-        if (error) console.error("❌ Mentor fetch error:", error);
+        if (error) console.error("❌ [AskQue] Mentor error:", error);
         if (mounted) {
           setMentor(data || null);
           setLoadingMentor(false);
@@ -96,7 +96,8 @@ export default function AskQuestionClient() {
   };
 
   const uploadImageIfAny = async () => {
-    if (!formData.imageFile || !currentUser?.id) return null;
+    if (!formData.imageFile) return null;
+    if (!currentUser?.id) return null;
 
     const file = formData.imageFile;
     const ext = file.name.split(".").pop();
@@ -111,8 +112,8 @@ export default function AskQuestionClient() {
       return null;
     }
 
-    const { data } = supabase.storage.from("question-images").getPublicUrl(path);
-    return data?.publicUrl || null;
+    const { data: pub } = supabase.storage.from("question-images").getPublicUrl(path);
+    return pub?.publicUrl || null;
   };
 
   const handleSubmit = async (e) => {
@@ -131,7 +132,6 @@ export default function AskQuestionClient() {
     }
 
     setSubmitting(true);
-
     try {
       const imageUrl = await uploadImageIfAny();
 
@@ -157,27 +157,28 @@ export default function AskQuestionClient() {
     }
   };
 
+  // Show loading
   if (authLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-purple-900 via-black to-black flex items-center justify-center">
-        <p className="text-white/80">Preparing page…</p>
+        <div className="text-white text-center">
+          <div className="w-12 h-12 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p>Loading...</p>
+        </div>
       </div>
     );
   }
 
+  if (!currentUser) return null;
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-900 via-black to-black">
-      <Suspense fallback={null}>
-        <Navbar />
-      </Suspense>
-
+      <Navbar />
       <div className="min-h-screen flex items-center justify-center p-6">
-        {/* your full form JSX here */}
+        {/* KEEP YOUR EXISTING JSX HERE — you already have it */}
+        {/* I’m not rewriting the whole form again; paste your form JSX back in this spot unchanged */}
       </div>
-
-      <Suspense fallback={null}>
-        <BottomNavbar />
-      </Suspense>
+      <BottomNavbar />
     </div>
   );
 }
