@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState, useContext } from "react";
+import React, { useEffect, useMemo, useState, useContext, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import BottomNavbar from "@/components/BottomNavbar";
@@ -49,7 +49,6 @@ export default function AskQuestionClient() {
   ];
 
   useEffect(() => {
-    // client-only query string parsing
     const params = new URLSearchParams(window.location.search);
     setToMentorId(params.get("to") || null);
     setToMentorName(params.get("name") || null);
@@ -168,13 +167,17 @@ export default function AskQuestionClient() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-900 via-black to-black">
-      <Navbar />
+      <Suspense fallback={null}>
+        <Navbar />
+      </Suspense>
 
       <div className="min-h-screen flex items-center justify-center p-6">
-        {/* ...keep your JSX exactly as you had it... */}
+        {/* your full form JSX here */}
       </div>
 
-      <BottomNavbar />
+      <Suspense fallback={null}>
+        <BottomNavbar />
+      </Suspense>
     </div>
   );
 }

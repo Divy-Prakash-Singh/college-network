@@ -3449,11 +3449,11 @@
 
 
 
-
 import { Suspense } from "react";
 import AskQuestionClient from "./AskQuestionClient";
 
-export const dynamic = "force-dynamic"; // stops static prerender/export for this route
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default function AskQuestionPage() {
   return (
